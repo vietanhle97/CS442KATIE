@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:focusable="true"
+    android:clickable="true"
+    android:id="@+id/sign_up_container"
+    tools:context=".SignUpActivity">
+
+        <EditText
+            android:id="@+id/username"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:focusableInTouchMode="true"
+            android:hint="User name:"
+            android:layout_marginTop="50dp"
+            android:imeOptions="actionDone"
+            android:inputType="textNoSuggestions|textEmailAddress"
+            android:padding="8dp">
+
+        </EditText>
+
+         <EditText
+            android:id="@+id/email"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/username"
+            android:background="@android:color/transparent"
+            android:focusableInTouchMode="true"
+            android:hint="Email:"
+            android:imeOptions="actionDone"
+            android:inputType="textEmailAddress|textNoSuggestions"
+            android:padding="8dp"
+            >
+
+        </EditText>
+
+        <EditText
+            android:id="@+id/password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/email"
+            android:background="@android:color/transparent"
+            android:focusableInTouchMode="true"
+            android:hint="Password:"
+            android:imeOptions="actionDone"
+            android:inputType="textPassword"
+            android:padding="8dp"
+            >
+
+        </EditText>
+
+        <Button
+            android:id="@+id/register_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="10dp"
+            android:layout_below="@id/password"
+            android:layout_centerHorizontal="true"
+            android:text="Register"
+            android:textColor="@color/white"
+            android:textStyle="bold">
+        </Button>
+</RelativeLayout>
