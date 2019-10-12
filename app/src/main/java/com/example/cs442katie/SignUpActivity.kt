@@ -44,7 +44,7 @@ class SignUpActivity : AppCompatActivity() {
                             if(it.isSuccessful){
                                 var intent = Intent(this@SignUpActivity, MainActivity :: class.java)
                                 startActivity(intent)
-
+                                finish()
                             }
                         })
                     }
