@@ -32,26 +32,22 @@ class SignUpActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(
             OnCompleteListener {
-                fun onComplete(task : Task<AuthResult>){
-                    if(task.isSuccessful){
+                    if(it.isSuccessful){
                         var user = auth.currentUser
-                        var id = user?.uid
-                        var reference = FirebaseDatabase.getInstance().reference.child("Users").child(id!!)
+                        var id = user!!.uid
+                        var reference = FirebaseDatabase.getInstance().reference.child("Users").child(id)
 
                         var hashmap : HashMap<String, String> = HashMap()
                         hashmap.put("username", username)
 
                         reference.setValue(hashmap).addOnCompleteListener(OnCompleteListener {
-                            fun onComplete(task : Task<Void>){
-                                if(task.isSuccessful){
-                                    var intent = Intent(this@SignUpActivity, MainActivity :: class.java)
-                                    startActivity(intent)
+                            if(it.isSuccessful){
+                                var intent = Intent(this@SignUpActivity, MainActivity :: class.java)
+                                startActivity(intent)
 
-                                }
                             }
                         })
                     }
-                }
             })
 
     }
