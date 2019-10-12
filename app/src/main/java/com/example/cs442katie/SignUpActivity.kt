@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.Toast
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.AuthResult
@@ -19,35 +20,38 @@ class SignUpActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sign_up)
-        var register_button = findViewById<Button>(R.id.register_btn)
-        var username = findViewById<EditText>(R.id.username) as EditText
-        var email = findViewById<EditText>(R.id.email)
-        var password = findViewById<EditText>(R.id.password)
+        val register_button = findViewById<Button>(R.id.register_btn)
+        val username = findViewById<EditText>(R.id.username) as EditText
+        val email = findViewById<EditText>(R.id.email)
+        val password = findViewById<EditText>(R.id.password)
         register_button.setOnClickListener(View.OnClickListener {
             SignUp(username.text.toString(), email.text.toString(), password.text.toString())
         })
     }
 
-    fun SignUp(username : String, email : String, password : String){
+    private fun SignUp(username : String, email : String, password : String){
         auth = FirebaseAuth.getInstance()
         auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(
             OnCompleteListener {
-                    if(it.isSuccessful){
-                        var user = auth.currentUser
-                        var id = user!!.uid
-                        var reference = FirebaseDatabase.getInstance().reference.child("Users").child(id)
+                if(it.isSuccessful){
+                    val user = auth.currentUser
+                    val id = user!!.uid
+                    val reference = FirebaseDatabase.getInstance().reference.child("Users").child(id)
 
-                        var hashmap : HashMap<String, String> = HashMap()
-                        hashmap.put("username", username)
-
-                        reference.setValue(hashmap).addOnCompleteListener(OnCompleteListener {
-                            if(it.isSuccessful){
-                                var intent = Intent(this@SignUpActivity, MainActivity :: class.java)
-                                startActivity(intent)
-
-                            }
-                        })
-                    }
+                    val hashmap : HashMap<String, String> = HashMap()
+                    hashmap.put("username", username)
+                    hashmap.put("id", id)
+                    reference.setValue(hashmap).addOnCompleteListener(OnCompleteListener {
+                        if(it.isSuccessful){
+                            val intent = Intent(this@SignUpActivity, MainActivity :: class.java)
+                            startActivity(intent)
+                            finish()
+                        }
+                    })
+                } else{
+                    val message = Toast.makeText(this@SignUpActivity, "Authentication failed. Please try again", Toast.LENGTH_SHORT)
+                    message.show()
+                }
             })
 
     }
