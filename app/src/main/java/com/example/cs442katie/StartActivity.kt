@@ -29,9 +29,9 @@ class StartActivity : AppCompatActivity() {
             finish()
         })
 
-        SignIn()
+        signIn()
     }
-    private fun SignIn(){
+    private fun signIn(){
         signin.setOnClickListener(View.OnClickListener {
             val email = findViewById<EditText>(R.id.email).text.toString()
             val password = findViewById<EditText>(R.id.password).text.toString()
