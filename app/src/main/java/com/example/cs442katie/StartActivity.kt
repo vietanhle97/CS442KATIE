@@ -9,6 +9,7 @@ import android.widget.EditText
 import android.widget.Toast
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.activity_sign_up.*
 import kotlinx.android.synthetic.main.activity_start.*
 
@@ -20,6 +21,11 @@ class StartActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_start)
 
+        val db = FirebaseFirestore.getInstance()
+        val arr = hashMapOf(
+            "arr" to arrayListOf(1, 2, 3, 4, 5)
+        )
+        db.collection("arrays").add(arr)
         signin = findViewById<Button>(R.id.signin)
         signup = findViewById<Button>(R.id.signup)
         auth = FirebaseAuth.getInstance()
