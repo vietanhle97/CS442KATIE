@@ -29,7 +29,14 @@ class StartActivity : AppCompatActivity() {
             finish()
         })
 
-        signIn()
+        if(FirebaseAuth.getInstance().currentUser != null){
+            val intent = Intent(this@StartActivity, MainActivity :: class.java)
+            startActivity(intent)
+            finish()
+        }
+        else {
+            signIn()
+        }
     }
     private fun signIn(){
         signin.setOnClickListener(View.OnClickListener {
