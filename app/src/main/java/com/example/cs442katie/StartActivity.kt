@@ -21,11 +21,6 @@ class StartActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_start)
 
-        val db = FirebaseFirestore.getInstance()
-        val arr = hashMapOf(
-            "arr" to arrayListOf(1, 2, 3, 4, 5)
-        )
-        db.collection("arrays").add(arr)
         signin = findViewById<Button>(R.id.signin)
         signup = findViewById<Button>(R.id.signup)
         auth = FirebaseAuth.getInstance()
