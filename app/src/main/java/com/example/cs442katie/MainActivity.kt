@@ -16,16 +16,23 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.Toast
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.recyclerview.widget.RecyclerView
+import com.android.volley.RequestQueue
+import com.android.volley.Response
+import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.Volley
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     lateinit var auth : FirebaseAuth
     lateinit var db : FirebaseFirestore
-
+    lateinit var currentUser : User
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -35,29 +42,36 @@ class MainActivity : AppCompatActivity() {
 
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
+        Log.e("id", auth.uid)
         db.collection("users").document(auth.uid!!).get()
             .addOnSuccessListener { result ->
-                toolbar.title = result.get("full name").toString()
-        }
+                toolbar.title = result.get("fullName").toString()
+                currentUser = result.toObject(User::class.java) as User
+                Log.e("user", currentUser.toString())
 
+                val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
+                val navView: NavigationView = findViewById<NavigationView>(R.id.nav_view)
+                val navController = findNavController(R.id.nav_host_fragment)
+                // Passing each menu ID as a set of Ids because each
+                // menu should be considered as top level destinations.
+                appBarConfiguration = AppBarConfiguration(
+                    setOf(
+                        R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow,
+                        R.id.nav_tools, R.id.nav_share, R.id.nav_send
+                    ), drawerLayout
+                )
+//                setupActionBarWithNavController(navController, appBarConfiguration)
+                val toggle = ActionBarDrawerToggle(this@MainActivity, drawerLayout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)
+                drawerLayout.addDrawerListener(toggle)
+                toggle.syncState()
+                navView.setupWithNavController(navController)
+            }
         val fab: FloatingActionButton = findViewById(R.id.fab)
         fab.setOnClickListener { view ->
             Snackbar.make(view, "Not implemented", Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show()
         }
-        val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
-        val navView: NavigationView = findViewById<NavigationView>(R.id.nav_view)
-        val navController = findNavController(R.id.nav_host_fragment)
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
-        appBarConfiguration = AppBarConfiguration(
-            setOf(
-                R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow,
-                R.id.nav_tools, R.id.nav_share, R.id.nav_send
-            ), drawerLayout
-        )
-        setupActionBarWithNavController(navController, appBarConfiguration)
-        navView.setupWithNavController(navController)
+
 
     }
 
@@ -88,6 +102,8 @@ class MainActivity : AppCompatActivity() {
         super.onBackPressed()
         supportFragmentManager.popBackStack()
     }
+
+
 
 
 }

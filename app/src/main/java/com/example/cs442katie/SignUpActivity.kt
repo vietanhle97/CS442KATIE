@@ -46,8 +46,8 @@ class SignUpActivity : AppCompatActivity() {
                 val id = user!!.uid
 
                 val newUser = hashMapOf(
-                    "full name" to fullName,
-                    "student id" to studentId,
+                    "fullName" to fullName,
+                    "studentId" to studentId,
                     "email" to email,
                     "course" to arrayListOf("CS442", "CS489")
                 )

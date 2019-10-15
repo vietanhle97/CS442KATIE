@@ -31,6 +31,7 @@ class CourseMainAdapter(
         holder.course.setOnClickListener(courseListener)
         if(course.admin != uid)
             holder.callAttendanceButton.visibility = View.GONE
+
     }
 
     class CourseMainViewHolder(view: View) : RecyclerView.ViewHolder(view){
@@ -39,4 +40,6 @@ class CourseMainAdapter(
         val callAttendanceButton = view.findViewById<Button>(R.id.call_attendance_button)
 
     }
+
+
 }
