@@ -53,12 +53,12 @@ class HomeFragment : Fragment() {
                 val notificationBody = JSONObject()
 
                 try {
-                    notification.put("to", "/topics/CS442")
                     notificationBody.put("title", "Enter_title")
-                    notificationBody.put("message", "vdx")
-                    notification.put("data", notificationBody)
-//                    notification.put("data", notifcationBody)
-                    Log.e("notification", notification.toString(2))
+                    notificationBody.put("text", "vdx")
+                    notification.put("to", "/topics/CS442")
+                    notification.put("priority", "high")
+                    notification.put("notification", notificationBody)
+                    Log.e("notification", notification.toString())
                 } catch (e: JSONException) {
                     Log.e("TAG", "onCreate: " + e.message)
                 }
@@ -78,7 +78,7 @@ class HomeFragment : Fragment() {
 
     private fun sendNotification(requestQueue: RequestQueue, notification: JSONObject) {
         Log.e("TAG", "sendNotification")
-        val jsonObjectRequest = object : JsonObjectRequest(Method.POST, FCM_API, notification,
+        val jsonObjectRequest = object : JsonObjectRequest(FCM_API, notification,
             Response.Listener<JSONObject> { response ->
                 Log.i("TAG", "onResponse: $response")
             },
@@ -89,7 +89,7 @@ class HomeFragment : Fragment() {
 
             override fun getHeaders(): Map<String, String> {
                 val params = HashMap<String, String>()
-                params["Authorization"] = "key=AAAAKM1G8VU:APA91bF0BgkxTiymt9S2G49s9AAN6CsMt-DpUB00uXvmzY88gaAKcChPD0wQOze2tbZlJ4brDmmiP0Z5WrpqP40QwD3mCLJBIvU8flrGfDLcbdLSuKURdihsN_N71CzgmMU2GX7AAfuj"
+                params["Authorization"] = "key=AAAAgnRkfDA:APA91bHDoHPaekd3AQsdXP79Uq_c9ZOBE-IEtFlRWwSuUo0gOY9BhaO-iIPd5q7sQ-SYNTgfqH_aPB9bXgzuvqGxxC1805VmVJvQFP8FT0LN-3BNBALPNcMoNSuvnl2DDPZPy1n8O-9A"
                 params["Content-Type"] = "application/json"
                 return params
             }

@@ -1,5 +1,6 @@
 package com.example.cs442katie
 
+import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
@@ -31,7 +32,8 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        Log.d(TAG, "From: " + remoteMessage.from)
+        super.onMessageReceived(remoteMessage)
+        Log.e(TAG, "From: " + remoteMessage.from)
 
         if(remoteMessage.notification != null) {
             Log.d(TAG, "Notification Message Body: ${remoteMessage.notification?.body}")
@@ -43,6 +45,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("Notification", body)
+            putExtra("course", "CS442")
         }
 
         var pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT)
@@ -52,7 +55,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("Push Notification FCM")
             .setContentText(body)
-            .setAutoCancel(true)
+            .setAutoCancel(false)
             .setSound(notificationSound)
             .setContentIntent(pendingIntent)
 

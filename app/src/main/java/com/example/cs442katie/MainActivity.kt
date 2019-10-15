@@ -19,10 +19,6 @@ import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.recyclerview.widget.RecyclerView
-import com.android.volley.RequestQueue
-import com.android.volley.Response
-import com.android.volley.toolbox.JsonObjectRequest
-import com.android.volley.toolbox.Volley
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import org.json.JSONObject
@@ -34,6 +30,10 @@ class MainActivity : AppCompatActivity() {
     lateinit var db : FirebaseFirestore
     lateinit var currentUser : User
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.e("intent extras", intent.extras.toString())
+        if(intent.extras != null) {
+            Log.e("course", intent.extras!!.getString("course"))
+        }
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
