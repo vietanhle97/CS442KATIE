@@ -21,37 +21,37 @@ class StartActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_start)
 
-        val db = FirebaseFirestore.getInstance()
-        val arr = hashMapOf(
-            "arr" to arrayListOf(1, 2, 3, 4, 5)
-        )
-        db.collection("arrays").add(arr)
+        if(FirebaseAuth.getInstance().currentUser != null) {
+            val intent = Intent(this@StartActivity, MainActivity :: class.java)
+            startActivity(intent)
+            finish()
+        }
+
         signin = findViewById<Button>(R.id.signin)
         signup = findViewById<Button>(R.id.signup)
         auth = FirebaseAuth.getInstance()
         signup.setOnClickListener(View.OnClickListener {
             val intent = Intent(this@StartActivity, SignUpActivity :: class.java)
             startActivity(intent)
-            finish()
         })
 
-        signIn()
-    }
-    private fun signIn(){
         signin.setOnClickListener(View.OnClickListener {
             val email = findViewById<EditText>(R.id.email).text.toString()
             val password = findViewById<EditText>(R.id.password).text.toString()
-            if(!email.isEmpty() && !password.isEmpty()) {
-                auth.signInWithEmailAndPassword(email, password).addOnCompleteListener(
-                    OnCompleteListener {
+            if(email.isNotEmpty() && password.isNotEmpty()) {
+                auth.signInWithEmailAndPassword(email, password).addOnCompleteListener {
                     if (it.isSuccessful) {
                         val intent = Intent(this@StartActivity, MainActivity::class.java)
                         startActivity(intent)
                         finish()
                     }
-                })
-            } else{
-                val message = Toast.makeText(this@StartActivity, "Your email or password is incorrect! Please try again", Toast.LENGTH_SHORT)
+                    else {
+                        val message = Toast.makeText(this@StartActivity, "Your email or password is incorrect! Please try again", Toast.LENGTH_SHORT)
+                        message.show()
+                    }
+                }
+            } else {
+                val message = Toast.makeText(this@StartActivity, "Your email and password can't be empty.", Toast.LENGTH_SHORT)
                 message.show()
             }
         })
