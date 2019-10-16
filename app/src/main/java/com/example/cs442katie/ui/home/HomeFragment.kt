@@ -25,7 +25,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
-import kotlinx.android.synthetic.main.fragment_home.*
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -33,7 +32,7 @@ class HomeFragment : Fragment() {
     private val FCM_API = "https://fcm.googleapis.com/fcm/send"
 
     override fun onCreateView( inflater: LayoutInflater,  container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val usersDatabase = (activity as MainActivity).db.collection("users").document((activity as MainActivity).auth.uid!!)
+        val usersDatabase = (activity as MainActivity).db.collection("users").document((activity as MainActivity).auth.uid as String)
 
         val root = inflater.inflate(R.layout.fragment_home, container, false)
         val requestQueue: RequestQueue by lazy {
@@ -43,9 +42,9 @@ class HomeFragment : Fragment() {
 
         usersDatabase.get().addOnSuccessListener { result ->
             val userCourseList = result.get("course") as ArrayList<String>
-            val courseDatabase = FirebaseFirestore.getInstance().collection("courses")
-            val userTasks = userCourseList.map { courseDatabase.document("${it!!}").get() }
-            Tasks.whenAllSuccess<DocumentSnapshot>(userTasks).addOnSuccessListener { documents ->
+            val coursesDatabase = FirebaseFirestore.getInstance().collection("courses")
+            val courseTasks = userCourseList.map { coursesDatabase.document("${it!!}").get() }
+            Tasks.whenAllSuccess<DocumentSnapshot>(courseTasks).addOnSuccessListener { documents ->
                 val courseList = documents.map { it.toObject(Course :: class.java) } as List<Course>
                 val courseMainAdapter = CourseMainAdapter(root.context, courseList, View.OnClickListener {
                     val fragment = GalleryFragment()
@@ -60,6 +59,7 @@ class HomeFragment : Fragment() {
                         notificationBody.put("title", "Enter_title")
                         notificationBody.put("message", "vdx")
                         notification.put("data", notificationBody)
+//                    notification.put("data", notifcationBody)
                         Log.e("notification", notification.toString(2))
                     } catch (e: JSONException) {
                         Log.e("TAG", "onCreate: " + e.message)
