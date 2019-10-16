@@ -12,24 +12,42 @@
         android:layout_height="200dp"
         app:cardCornerRadius="10dp"
         android:id="@+id/course"
-        android:backgroundTint="@color/checked_blue"
         android:layout_marginVertical="10dp"
         android:layout_marginHorizontal="10dp"
-        app:cardElevation="0dp">
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="#b1cdf4">
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:layout_marginStart="10dp">
-            <TextView
-                android:layout_width="wrap_content"
+            <RelativeLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Mobile Computing"
-                android:textSize="25dp"
-                android:textColor="@color/white"
-                android:paddingVertical="10dp"
-                android:id="@+id/course_name"
-                />
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Mobile Computing"
+                    android:textSize="25dp"
+                    android:textColor="@color/white"
+                    android:paddingVertical="10dp"
+                    android:id="@+id/course_name"
+                    />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Admin"
+                    android:textSize="15dp"
+                    android:layout_centerVertical="true"
+                    android:textColor="@color/white"
+                    android:textStyle="italic"
+                    android:layout_marginEnd="30dp"
+                    android:layout_marginVertical="10dp"
+                    android:layout_alignParentEnd="true"
+                    android:id="@+id/admin"
+                    />
+            </RelativeLayout>
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

@@ -18,12 +18,14 @@
             android:value="@string/notification_channel_id" />
 
         <activity android:name=".CourseActivity"
+            android:colorMode="wideColorGamut"
            ></activity>
         <activity
             android:name=".MainActivity"
             android:label="@string/title_activity_main"
             android:permission="com.google.android.c2dm.permission.SEND"
-            android:theme="@style/AppTheme.NoActionBar.NoActionBar"></activity>
+            android:theme="@style/AppTheme.NoActionBar.NoActionBar"
+            android:colorMode="wideColorGamut"></activity>
 
         <service
             android:name=".MyFirebaseMessagingService"
@@ -34,8 +36,13 @@
             </intent-filter>
         </service>
 
-        <activity android:name=".SignUpActivity" />
-        <activity android:name=".StartActivity">
+        <activity android:name=".SignUpActivity"
+            android:colorMode="wideColorGamut"
+            android:windowSoftInputMode="adjustPan|adjustResize"/>
+        <activity android:name=".StartActivity"
+            android:windowSoftInputMode="adjustPan|adjustResize"
+            android:colorMode="wideColorGamut"
+            >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

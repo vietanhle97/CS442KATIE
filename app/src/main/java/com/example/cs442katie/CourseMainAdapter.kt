@@ -1,6 +1,8 @@
 package com.example.cs442katie
 
 import android.content.Context
+import android.content.res.Resources
+import android.graphics.drawable.Drawable
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -8,7 +10,9 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.cardview.widget.CardView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import io.opencensus.resource.Resource
 
 class CourseMainAdapter(
         private var context: Context, private var courseList: List<Course>,
@@ -31,8 +35,11 @@ class CourseMainAdapter(
         holder.courseInstructor.text = course.instructor
             holder.callAttendanceButton.setOnClickListener(attendanceListener)
         holder.course.setOnClickListener(courseListener)
-        if(course.admin != uid)
+        if(course.admin != uid) {
             holder.callAttendanceButton.visibility = View.GONE
+            holder.admin.visibility = View.GONE
+            holder.course.setCardBackgroundColor(context.resources.getColor(R.color.member))
+        }
 
     }
 
@@ -42,6 +49,7 @@ class CourseMainAdapter(
         val callAttendanceButton = view.findViewById<Button>(R.id.call_attendance_button)
         val courseId =  view.findViewById<TextView>(R.id.course_id)
         val courseInstructor = view.findViewById<TextView>(R.id.course_instructor)
+        val admin = view.findViewById<TextView>(R.id.admin)
     }
 
 

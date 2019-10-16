@@ -34,7 +34,16 @@ class SignUpActivity : AppCompatActivity() {
         val email = findViewById<EditText>(R.id.email)
         val password = findViewById<EditText>(R.id.password)
         registerButton.setOnClickListener(View.OnClickListener {
-            signUp(fullName.text.toString(), studentId.text.toString(), email.text.toString(), password.text.toString())
+            if (fullName.text.toString().isEmpty()
+                || email.text.toString().isEmpty()
+                || password.text.toString().isEmpty()
+                || studentId.text.toString().isEmpty()) {
+
+                val message = Toast.makeText(this@SignUpActivity, "Please fill in all required field", Toast.LENGTH_SHORT)
+                message.show()
+            } else{
+                signUp(fullName.text.toString(), studentId.text.toString(), email.text.toString(), password.text.toString())
+            }
         })
     }
 
@@ -59,7 +68,7 @@ class SignUpActivity : AppCompatActivity() {
                     finish()
                 }
             } else {
-                val message = Toast.makeText(this@SignUpActivity, "${it.result}. Please try again", Toast.LENGTH_SHORT)
+                val message = Toast.makeText(this@SignUpActivity, "Register Failed. Please try again", Toast.LENGTH_SHORT)
                 message.show()
             }
         }

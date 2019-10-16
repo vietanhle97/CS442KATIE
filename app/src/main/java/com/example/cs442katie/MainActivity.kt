@@ -20,11 +20,23 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.RelativeLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.core.content.ContextCompat.startActivity
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.android.volley.RequestQueue
+import com.android.volley.Response
+import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.Volley
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.android.synthetic.main.app_bar_main.*
+import org.json.JSONException
 import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
@@ -33,50 +45,100 @@ class MainActivity : AppCompatActivity() {
     lateinit var auth : FirebaseAuth
     lateinit var db : FirebaseFirestore
     lateinit var currentUser : User
+    private val FCM_API = "https://fcm.googleapis.com/fcm/send"
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.e("intent extras", intent.extras.toString())
         if(intent.extras != null) {
             Log.e("course", intent.extras!!.getString("course"))
         }
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
-
+        FirebaseMessaging.getInstance().subscribeToTopic("CS442")
+        setContentView(R.layout.activity_main)
         val toolbar: Toolbar = findViewById(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        Log.e("id", auth.uid)
+        val activity_main = findViewById<RelativeLayout>(R.id.content_main)
+        activity_main.visibility = View.GONE
+        toolbar.visibility = View.GONE
         db.collection("users").document(auth.uid!!).get()
             .addOnSuccessListener { result ->
-                toolbar.title = result.get("fullName").toString()
                 currentUser = result.toObject(User::class.java) as User
+                toolbar.title = result.get("fullName").toString()
                 Log.e("user", currentUser.toString())
 
                 val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
-                val navView: NavigationView = findViewById<NavigationView>(R.id.nav_view)
-                val navController = findNavController(R.id.nav_host_fragment)
-                // Passing each menu ID as a set of Ids because each
-                // menu should be considered as top level destinations.
-                appBarConfiguration = AppBarConfiguration(
-                    setOf(
-                        R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow,
-                        R.id.nav_tools, R.id.nav_share, R.id.nav_send
-                    ), drawerLayout
-                )
-//                setupActionBarWithNavController(navController, appBarConfiguration)
                 val toggle = ActionBarDrawerToggle(this@MainActivity, drawerLayout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)
                 drawerLayout.addDrawerListener(toggle)
                 toggle.syncState()
-                navView.setupWithNavController(navController)
+
+                val requestQueue: RequestQueue by lazy {
+                    Volley.newRequestQueue(this@MainActivity)
+                }
+                FirebaseMessaging.getInstance().subscribeToTopic("CS442")
+
+                val userCourseList = result.get("course") as ArrayList<String>
+                val coursesDatabase = FirebaseFirestore.getInstance().collection("courses").get()
+                coursesDatabase.addOnSuccessListener { documents ->
+                    val courseList = documents.filter {
+                        it.id in userCourseList
+                    }.map {
+                        it.toObject(Course::class.java)
+                    }
+                    Log.e("courses", courseList.toString())
+                    val courseMainAdapter =
+                        CourseMainAdapter(this@MainActivity, courseList, View.OnClickListener {
+                            val intent = Intent(this@MainActivity, CourseActivity::class.java)
+                            intent.putExtra("courseId", findViewById<TextView>(R.id.course_id)?.text)
+                            intent.putExtra("courseName", findViewById<TextView>(R.id.course_name)?.text)
+                            startActivity(intent)
+                        }, View.OnClickListener {
+                            val notification = JSONObject()
+                            val notificationData = JSONObject()
+
+                            try {
+                                notification.put("to", "/topics/CS442")
+                                notificationData.put("title", findViewById<TextView>(R.id.course_name).text)
+                                notificationData.put("message", "Class is checking attendance")
+                                notificationData.put("courseId", findViewById<TextView>(R.id.course_id).text)
+                                notification.put("data", notificationData)
+                                Log.e("notification", notification.toString(2))
+                            } catch (e: JSONException) {
+                                Log.e("TAG", "onCreate: " + e.message)
+                            }
+                            sendNotification(requestQueue, notification)
+
+                        }, auth.currentUser!!.uid)
+                    val recycler = findViewById<RecyclerView>(R.id.course_lists)
+                    recycler.setHasFixedSize(true)
+
+                    recycler.layoutManager = LinearLayoutManager(this@MainActivity)
+                    recycler.adapter = courseMainAdapter
+                    activity_main.visibility = View.VISIBLE
+                    toolbar.visibility = View.VISIBLE
+                    setSupportActionBar(toolbar)
+                    }
+                }
+    }
+
+    private fun sendNotification(requestQueue: RequestQueue, notification: JSONObject) {
+        Log.e("TAG", "sendNotification")
+        val jsonObjectRequest = object : JsonObjectRequest(FCM_API, notification,
+            Response.Listener<JSONObject> { response ->
+                // Log.i("TAG", "onResponse: $response")
+            },
+            Response.ErrorListener {
+                Toast.makeText(applicationContext, "Request error", Toast.LENGTH_LONG).show()
+                Log.e("TAG", "onErrorResponse: Didn't work")
+            }) {
+
+            override fun getHeaders(): Map<String, String> {
+                val params = HashMap<String, String>()
+                params["Authorization"] = "key=AAAAgnRkfDA:APA91bHDoHPaekd3AQsdXP79Uq_c9ZOBE-IEtFlRWwSuUo0gOY9BhaO-iIPd5q7sQ-SYNTgfqH_aPB9bXgzuvqGxxC1805VmVJvQFP8FT0LN-3BNBALPNcMoNSuvnl2DDPZPy1n8O-9A"
+                params["Content-Type"] = "application/json"
+                return params
             }
-        val fab: FloatingActionButton = findViewById(R.id.fab)
-        fab.setOnClickListener { view ->
-            Snackbar.make(view, "Not implemented", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show()
         }
-
-
+        requestQueue.add(jsonObjectRequest)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -95,11 +157,6 @@ class MainActivity : AppCompatActivity() {
             return true
         }
         return false
-    }
-
-    override fun onSupportNavigateUp(): Boolean {
-        val navController = findNavController(R.id.nav_host_fragment)
-        return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
     }
 
     override fun onBackPressed() {
