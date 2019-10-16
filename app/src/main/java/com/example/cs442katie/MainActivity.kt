@@ -1,6 +1,10 @@
 package com.example.cs442katie
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -102,8 +106,4 @@ class MainActivity : AppCompatActivity() {
         super.onBackPressed()
         supportFragmentManager.popBackStack()
     }
-
-
-
-
 }

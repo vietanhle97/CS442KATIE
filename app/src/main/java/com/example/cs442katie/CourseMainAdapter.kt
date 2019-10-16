@@ -27,7 +27,9 @@ class CourseMainAdapter(
     override fun onBindViewHolder(holder: CourseMainViewHolder, position: Int) {
         val course = courseList[position]
         holder.courseName.text = course.courseName
-        holder.callAttendanceButton.setOnClickListener(attendanceListener)
+        holder.courseId.text = course.courseId
+        holder.courseInstructor.text = course.instructor
+            holder.callAttendanceButton.setOnClickListener(attendanceListener)
         holder.course.setOnClickListener(courseListener)
         if(course.admin != uid)
             holder.callAttendanceButton.visibility = View.GONE
@@ -38,7 +40,8 @@ class CourseMainAdapter(
         val course = view.findViewById<CardView>(R.id.course)
         val courseName = view.findViewById<TextView>(R.id.course_name)
         val callAttendanceButton = view.findViewById<Button>(R.id.call_attendance_button)
-
+        val courseId =  view.findViewById<TextView>(R.id.course_id)
+        val courseInstructor = view.findViewById<TextView>(R.id.course_instructor)
     }
 
 

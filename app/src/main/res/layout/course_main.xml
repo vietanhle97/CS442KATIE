@@ -16,16 +16,57 @@
         android:layout_marginVertical="10dp"
         android:layout_marginHorizontal="10dp"
         app:cardElevation="0dp">
-        <TextView
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Mobile Computing"
-            android:textSize="25dp"
-            android:textColor="@color/white"
-            android:paddingVertical="10dp"
-            android:layout_marginStart="10dp"
-            android:id="@+id/course_name"
-            />
+            android:orientation="vertical"
+            android:layout_marginStart="10dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mobile Computing"
+                android:textSize="25dp"
+                android:textColor="@color/white"
+                android:paddingVertical="10dp"
+                android:id="@+id/course_name"
+                />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_notebook"
+                    android:layout_marginEnd="5dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/course_id"
+                    android:text="CS101"
+                    android:textSize="20dp"
+                    android:textColor="@color/white"
+                    />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_professor"
+                    android:layout_marginEnd="5dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/course_instructor"
+                    android:text="Min Hyuk Kim"
+                    android:textSize="20dp"
+                    android:textColor="@color/white"
+                    />
+            </LinearLayout>
+        </LinearLayout>
 
         <Button
             android:layout_width="wrap_content"
