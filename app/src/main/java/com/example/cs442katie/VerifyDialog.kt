@@ -1,4 +1,4 @@
-package com.example.cs442katie.ui
+package com.example.cs442katie
 
 
 import android.app.AlertDialog

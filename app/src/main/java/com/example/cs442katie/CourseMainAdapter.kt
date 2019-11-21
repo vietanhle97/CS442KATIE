@@ -15,10 +15,14 @@ import androidx.recyclerview.widget.RecyclerView
 import io.opencensus.resource.Resource
 
 class CourseMainAdapter(
-        private var context: Context, private var courseList: List<Course>,
-        private var courseListener: View.OnClickListener,
-        private var attendanceListener : View.OnClickListener,
-        private var uid : String) : RecyclerView.Adapter<CourseMainAdapter.CourseMainViewHolder> () {
+    val context: Context,
+    val courseList: List<Course>,
+    val courseListener: (Course) -> Unit,
+    val attendanceListener : (Course) -> Unit,
+    val uid : String): RecyclerView.Adapter<CourseMainAdapter.CourseMainViewHolder> () {
+
+
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CourseMainViewHolder {
         val view = LayoutInflater.from(context).inflate(R.layout.course_main, parent, false)
         return CourseMainViewHolder(view)
@@ -30,17 +34,13 @@ class CourseMainAdapter(
 
     override fun onBindViewHolder(holder: CourseMainViewHolder, position: Int) {
         val course = courseList[position]
-        holder.courseName.text = course.courseName
-        holder.courseId.text = course.courseId
-        holder.courseInstructor.text = course.instructor
-            holder.callAttendanceButton.setOnClickListener(attendanceListener)
-        holder.course.setOnClickListener(courseListener)
         if(course.admin != uid) {
             holder.callAttendanceButton.visibility = View.GONE
             holder.admin.visibility = View.GONE
-            holder.course.setCardBackgroundColor(context.resources.getColor(R.color.member))
+            holder.course.setCardBackgroundColor(ContextCompat.getColor(context, R.color.member))
         }
 
+        holder.bind(course, courseListener, attendanceListener)
     }
 
     class CourseMainViewHolder(view: View) : RecyclerView.ViewHolder(view){
@@ -50,7 +50,19 @@ class CourseMainAdapter(
         val courseId =  view.findViewById<TextView>(R.id.course_id)
         val courseInstructor = view.findViewById<TextView>(R.id.course_instructor)
         val admin = view.findViewById<TextView>(R.id.admin)
+
+        fun bind(courseMain: Course, courseListener: (Course) -> Unit, attendanceListener: (Course) -> Unit){
+            courseName.text = courseMain.courseName
+            courseId.text = courseMain.courseId
+            courseInstructor.text = courseMain.instructor
+//            callAttendanceButton.setOnClickListener(attendanceListener)
+            course.setOnClickListener(View.OnClickListener {
+                courseListener(courseMain)
+            })
+
+            callAttendanceButton.setOnClickListener(View.OnClickListener {
+                attendanceListener(courseMain)
+            })
+        }
     }
-
-
 }

@@ -37,51 +37,6 @@ class HomeFragment : Fragment() {
         val usersDatabase = (activity as MainActivity).db.collection("users").document((activity as MainActivity).auth.uid as String)
 
         val root = inflater.inflate(R.layout.fragment_home, container, false)
-        val requestQueue: RequestQueue by lazy {
-            Volley.newRequestQueue(root.context)
-        }
-        FirebaseMessaging.getInstance().subscribeToTopic("CS442")
-
-        usersDatabase.get().addOnSuccessListener { result ->
-            val userCourseList = result.get("course") as ArrayList<String>
-            val coursesDatabase = FirebaseFirestore.getInstance().collection("courses").get()
-            coursesDatabase.addOnSuccessListener { documents ->
-                val courseList = documents.filter {
-                    it.id in userCourseList
-                }.map {
-                    it.toObject(Course::class.java)
-                }
-                Log.e("courses", courseList.toString())
-                val courseMainAdapter =
-                    CourseMainAdapter(root.context, courseList, View.OnClickListener {
-                        val intent = Intent(root.context, CourseActivity::class.java)
-                        intent.putExtra("courseId", view?.findViewById<TextView>(R.id.course_id)?.text)
-                        intent.putExtra("courseName", view?.findViewById<TextView>(R.id.course_name)?.text)
-                        startActivity(intent)
-                    }, View.OnClickListener {
-                        val notification = JSONObject()
-                        val notificationData = JSONObject()
-
-                        try {
-                            notification.put("to", "/topics/CS442")
-                            notificationData.put("title", (view?.parent as View).findViewById<TextView>(R.id.course_name).text)
-                            notificationData.put("message", "Class is checking attendance")
-                            notificationData.put("courseId", (view?.parent as View).findViewById<TextView>(R.id.course_id).text)
-                            notification.put("data", notificationData)
-                            Log.e("notification", notification.toString(2))
-                        } catch (e: JSONException) {
-                            Log.e("TAG", "onCreate: " + e.message)
-                        }
-                        sendNotification(requestQueue, notification)
-
-                    }, (activity as MainActivity).auth.currentUser!!.uid)
-                val recycler = root.findViewById<RecyclerView>(R.id.course_lists)
-                recycler.setHasFixedSize(true)
-
-                recycler.layoutManager = LinearLayoutManager(root.context)
-                recycler.adapter = courseMainAdapter
-            }
-        }
 
         return root
 
