@@ -17,7 +17,7 @@
         android:textColor="#777777"
         />
     <ImageView
-        android:id="@+id/ic_fingerprint"
+        android:id="@+id/ic_bluetooth"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/dialog_title"
@@ -38,7 +38,7 @@
         android:id="@+id/button_verify"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/ic_fingerprint"
+        android:layout_below="@id/ic_bluetooth"
         android:layout_centerHorizontal="true"
         android:textColor="@color/white"
         android:background="@drawable/button_gradient"
