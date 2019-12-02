@@ -16,34 +16,62 @@
         android:fontFamily="@font/product_sans_regular"
         android:textColor="#777777"
         />
-    <ImageView
-        android:id="@+id/ic_bluetooth"
-        android:layout_width="wrap_content"
+    <RelativeLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/dialog_title"
-        android:layout_marginTop="20dp"
-        android:layout_marginHorizontal="30dp"
-        android:src="@drawable/ic_fingerprint"/>
+        android:layout_marginTop="10dp"
+        android:paddingVertical="10dp"
+        android:id="@+id/ble_camera_container">
+        <ImageView
+            android:id="@+id/bluetooth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginHorizontal="30dp"
+            android:src="@drawable/ic_bluetooth"
+            />
 
-    <ImageView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/dialog_title"
-        android:layout_alignParentEnd="true"
-        android:layout_marginTop="20dp"
-        android:layout_marginHorizontal="30dp"
-        android:src="@drawable/ic_placeholder"/>
+        <ProgressBar
+            android:id="@+id/ble_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginHorizontal="30dp"
+            android:src="@drawable/progress_bar_drawable"
+            android:visibility="gone"/>
 
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginHorizontal="30dp"
+            android:src="@drawable/ic_camera"
+            android:id="@+id/camera"/>
+
+        <ProgressBar
+            android:id="@+id/camera_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginHorizontal="30dp"
+            android:src="@drawable/progress_bar_drawable"
+            android:visibility="gone"
+            />
+
+    </RelativeLayout>
     <Button
         android:id="@+id/button_verify"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/ic_bluetooth"
+        android:layout_below="@id/ble_camera_container"
         android:layout_centerHorizontal="true"
         android:textColor="@color/white"
         android:background="@drawable/button_gradient"
         android:text="Verify"
-        android:layout_marginVertical="20dp"
+        android:layout_marginVertical="10dp"
         android:fontFamily="@font/product_sans_bold"
         android:textSize="17dp"/>
 

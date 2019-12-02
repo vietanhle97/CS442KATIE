@@ -2,5 +2,5 @@
 <resources>
     <color name="colorPrimary">@color/online_green</color>
     <color name="colorPrimaryDark">@color/dark_sea_green</color>
-    <color name="colorAccent">#D81B60</color>
+    <color name="colorAccent">#b6d7a8</color>
 </resources>

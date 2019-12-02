@@ -1,79 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-    <RelativeLayout
+    android:layout_height="match_parent"
+    android:id="@+id/sign_up_activity_content">
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:focusable="true"
-        android:clickable="true"
-        android:id="@+id/sign_up_container"
-        tools:context=".SignUpActivity"
-        android:layout_gravity = "center">
-        <LinearLayout
+        android:layout_height="match_parent">
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:layout_marginHorizontal="50dp"
-            >
-            <EditText
-                android:id="@+id/full_name"
+            android:focusable="true"
+            android:clickable="true"
+            android:id="@+id/sign_up_container"
+            tools:context=".SignUpActivity"
+            android:layout_gravity = "center">
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@android:color/transparent"
-                android:focusableInTouchMode="true"
-                android:hint="Full name"
-                android:imeOptions="actionDone"
-                android:inputType="textNoSuggestions|textEmailAddress"
-                android:padding="8dp"/>
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:layout_marginHorizontal="50dp"
+                android:id="@+id/sign_up_holder"
+                >
+                <EditText
+                    android:id="@+id/full_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@android:color/transparent"
+                    android:focusableInTouchMode="true"
+                    android:hint="Full name"
+                    android:imeOptions="actionDone"
+                    android:inputType="textNoSuggestions|textEmailAddress"
+                    android:padding="8dp"/>
 
-            <EditText
-                android:id="@+id/student_id"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@android:color/transparent"
-                android:focusableInTouchMode="true"
-                android:hint="Student ID"
-                android:imeOptions="actionDone"
-                android:inputType="textNoSuggestions|textEmailAddress"
-                android:padding="8dp"/>
+                <EditText
+                    android:id="@+id/student_id"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@android:color/transparent"
+                    android:focusableInTouchMode="true"
+                    android:hint="Student ID"
+                    android:imeOptions="actionDone"
+                    android:inputType="textNoSuggestions|textEmailAddress"
+                    android:padding="8dp"/>
 
-             <EditText
-                android:id="@+id/email"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@android:color/transparent"
-                android:focusableInTouchMode="true"
-                android:hint="Email"
-                android:imeOptions="actionDone"
-                android:inputType="textEmailAddress|textNoSuggestions"
-                android:padding="8dp"/>
+                 <EditText
+                    android:id="@+id/email"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@android:color/transparent"
+                    android:focusableInTouchMode="true"
+                    android:hint="Email"
+                    android:imeOptions="actionDone"
+                    android:inputType="textEmailAddress|textNoSuggestions"
+                    android:padding="8dp"/>
 
-            <EditText
-                android:id="@+id/password"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@android:color/transparent"
-                android:focusableInTouchMode="true"
-                android:hint="Password"
-                android:imeOptions="actionDone"
-                android:inputType="textPassword"
-                android:padding="8dp"/>
+                <EditText
+                    android:id="@+id/password"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@android:color/transparent"
+                    android:focusableInTouchMode="true"
+                    android:hint="Password"
+                    android:imeOptions="actionDone"
+                    android:inputType="textPassword"
+                    android:padding="8dp"/>
 
-            <Button
-                android:id="@+id/register_btn"
+                <Button
+                    android:id="@+id/next_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:layout_centerHorizontal="true"
+                    android:text="Next"
+                    android:fontFamily="@font/product_sans_bold"
+                    android:layout_gravity="center"
+                    android:textColor="@color/white"
+                    android:background="@drawable/button_gradient"/>
+            </LinearLayout>
+            <ProgressBar
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_centerVertical="true"
                 android:layout_centerHorizontal="true"
-                android:text="Register"
-                android:fontFamily="@font/product_sans_bold"
-                android:layout_gravity="center"
-                android:textColor="@color/white"
-                android:background="@drawable/button_gradient"/>
-        </LinearLayout>
-    </RelativeLayout>
-</ScrollView>
+                android:id="@+id/circular_progress"
+                android:visibility="gone"
+                android:progressDrawable="@drawable/progress_bar_drawable"/>
+        </RelativeLayout>
+    </ScrollView>
+</RelativeLayout>

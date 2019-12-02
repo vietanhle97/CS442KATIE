@@ -10,6 +10,7 @@
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:id="@+id/courseToolbarLayout"
         android:theme="@style/AppTheme.NoActionBar.AppBarOverlay">
 
         <androidx.appcompat.widget.Toolbar
@@ -20,5 +21,20 @@
             app:popupTheme="@style/AppTheme.NoActionBar.AppBarOverlay"/>
 
     </com.google.android.material.appbar.AppBarLayout>
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:id="@+id/button_verify"
+        android:text="Check Attendance"
+        android:padding="10dp"
+        android:fontFamily="@font/product_sans_bold"
+        android:textColor="@color/white"
+        android:elevation="0dp"
+        android:background="@drawable/button_gradient"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="30dp"
+        android:visibility="gone"/>
 
 </RelativeLayout>
