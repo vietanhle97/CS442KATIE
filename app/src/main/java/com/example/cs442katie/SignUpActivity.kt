@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.text.style.BulletSpan
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
@@ -20,6 +21,7 @@ import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.activity_sign_up.*
+import java.lang.Exception
 import java.util.*
 import java.util.regex.Pattern
 import kotlin.collections.HashMap
@@ -60,48 +62,27 @@ class SignUpActivity : AppCompatActivity() {
     private fun signUp(fullName : String, studentId : String, email : String, password : String) {
 
         auth = FirebaseAuth.getInstance()
-        if(isValidateEmail(email)){
+        if(!isValidateEmail(email)){
+            Toast.makeText(this, "Please input a valid email", Toast.LENGTH_SHORT).show()
+        } else if (!isValidateStudentId(studentId)) {
+            Toast.makeText(this, "Please input a valid student ID", Toast.LENGTH_SHORT).show()
+        } else {
             db.collection("users").whereEqualTo("studentId", studentId).get().addOnSuccessListener {
                 if(!it.isEmpty){
                     Toast.makeText(this, "Your ID is already existed. You cannot create another account", Toast.LENGTH_SHORT).show()
                 } else {
+                    imm.hideSoftInputFromWindow(signup_holder.windowToken, 0)
                     val fragment = RegisterFragment()
-                    val transaction = supportFragmentManager.beginTransaction().replace(R.id.sign_up_activity_content, fragment)
-                    transaction.commit()
+                    val bundle = Bundle()
+                    bundle.putStringArrayList("user_info", arrayListOf(fullName, studentId, email, password))
+                    fragment.arguments = bundle
+                    val transaction = supportFragmentManager.beginTransaction()
+                    transaction.setCustomAnimations(R.anim.enter_from_right, R.anim.exit_to_right, R.anim.enter_from_right, R.anim.exit_to_right)
+                    transaction.replace(R.id.sign_up_activity_content, fragment).addToBackStack(null).commit()
                 }
 
             }
-        } else {
-            Toast.makeText(this, "Please input a valid email", Toast.LENGTH_SHORT).show()
         }
-
-
-//        auth = FirebaseAuth.getInstance()
-//        auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener {
-//            if(it.isSuccessful) {
-//                val user = auth.currentUser
-//                val id = user!!.uid
-//                val newUser = hashMapOf(
-//                    "fullName" to fullName,
-//                    "studentId" to studentId,
-//                    "email" to email,
-//                    "course" to arrayListOf("CS442", "CS489")
-//                )
-//                db.collection("users").document(id).set(newUser).addOnSuccessListener {
-//                    // We auto enroll every students to the CS442 course.
-//                    db.collection("courses").document("CS442").update("student", FieldValue.arrayUnion(id))
-//                    val intent = Intent(this@SignUpActivity, MainActivity :: class.java)
-//                    startActivity(intent)
-//                    finish()
-//                }
-//            } else {
-//                val message = Toast.makeText(this@SignUpActivity, "Register Failed. Please try again", Toast.LENGTH_SHORT)
-//                message.show()
-//                circular_progress.visibility = View.GONE
-//                signup_holder.visibility = View.VISIBLE
-//                imm.toggleSoftInput(InputMethodManager.SHOW_FORCED,0)
-//            }
-//        }
     }
 
     private fun isValidateEmail(email : String) : Boolean{
@@ -115,10 +96,29 @@ class SignUpActivity : AppCompatActivity() {
         return false
     }
 
-     override fun onBackPressed() {
-        super.onBackPressed()
-         supportFragmentManager.popBackStack()
+    private fun isValidateStudentId(studentId: String) : Boolean{
+        Log.e("studentID", studentId)
+        try {
+            val valid = studentId.toInt()
+            if(valid > 20000000 && valid <= (Calendar.getInstance().get(Calendar.YEAR) * 10000) + 9999){
+                Log.e("valid", studentId)
+                Log.e("hahah", ((Calendar.getInstance().get(Calendar.YEAR) * 10000) + 9999).toString())
+                return true
+            }
+            return false
+
+        } catch (e : Exception) {
+            Log.e("cannot covert", "TRUE")
+            return false
+        }
     }
 
-
+     override fun onBackPressed() {
+         val count = supportFragmentManager.backStackEntryCount
+         if(count == 0){
+             super.onBackPressed()
+         } else {
+             supportFragmentManager.popBackStack()
+         }
+    }
 }

@@ -44,6 +44,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.UploadTask
 import kotlinx.android.synthetic.main.course_main.*
+import kotlinx.android.synthetic.main.fragment_verify_dialog.*
 import org.altbeacon.beacon.BeaconConsumer
 import org.altbeacon.beacon.BeaconManager
 import org.altbeacon.beacon.MonitorNotifier
@@ -57,8 +58,8 @@ import kotlin.collections.ArrayList
  * A simple [Fragment] subclass.
  */
 class VerifyDialog : DialogFragment() {
-    private val REQUEST_IMAGE_CAPTURE = 1
     private val REQUEST_ENABLE_BT = 1
+    private val REQUEST_IMAGE_CAPTURE = 2
     lateinit var bluetooth : ImageView
     lateinit var bluetoothProgress : ProgressBar
     lateinit var  camera : ImageView

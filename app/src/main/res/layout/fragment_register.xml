@@ -5,11 +5,39 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/white"
+    android:id="@+id/fragment_register_content"
     tools:context=".RegisterFragment">
-
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_take_picture"
+        android:layout_centerHorizontal="true"
+        android:id="@+id/please_take_picture"
+        android:layout_marginBottom="0dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginHorizontal="20dp"/>
     <TextView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
-
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:text="Please take a picture of your face"
+        android:gravity="center"
+        android:layout_below="@id/please_take_picture"
+        android:textSize="20dp"/>
+    <ImageView
+        android:id="@+id/camera"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:src="@drawable/ic_camera"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="40dp"/>
+    <ProgressBar
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true"
+        android:id="@+id/circular_progress"
+        android:visibility="gone"
+        android:progressDrawable="@drawable/progress_bar_drawable"/>
 </RelativeLayout>
