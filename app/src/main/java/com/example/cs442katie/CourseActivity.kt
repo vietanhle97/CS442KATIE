@@ -56,7 +56,6 @@ class CourseActivity : AppCompatActivity() {
 
         db = FirebaseFirestore.getInstance()
         setSupportActionBar(toolbar)
-        button_verify.visibility = View.VISIBLE
         if(isAdmin == false){
             if(courseId != null){
                 db.collection("courses").document(courseId).get().addOnSuccessListener { result ->

@@ -49,9 +49,8 @@
                 <action android:name="com.google.android.c2dm.intent.RECEIVE" />
             </intent-filter>
         </service>
-
-        <activity
-            android:name=".SignUpActivity"
+        <service android:name=".BlueToothAttendanceCheckerService" />
+        <activity android:name=".SignUpActivity"
             android:colorMode="wideColorGamut"
             android:windowSoftInputMode="adjustPan|adjustResize" />
         <activity
