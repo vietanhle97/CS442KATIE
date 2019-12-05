@@ -70,6 +70,7 @@ class VerifyDialog : DialogFragment() {
     lateinit var bluetoothAdapter: BluetoothAdapter
     lateinit var items : String
     lateinit var db : FirebaseFirestore
+
     companion object {
         fun newInstance(courseId : String) : VerifyDialog{
             val dialog = VerifyDialog()

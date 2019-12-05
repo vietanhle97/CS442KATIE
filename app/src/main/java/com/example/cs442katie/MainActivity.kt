@@ -3,12 +3,10 @@ package com.example.cs442katie
 import android.app.Activity
 import android.bluetooth.*
 import android.bluetooth.le.*
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.IBinder
 import android.os.ParcelUuid
 import android.util.Log
 import androidx.navigation.findNavController
@@ -56,17 +54,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private val REQUEST_ENABLE_BT = 20
     private val REQUEST_DISCOVERABLE_BL = 30
-    private var requirementBL = false
     private lateinit var appBarConfiguration: AppBarConfiguration
     lateinit var auth : FirebaseAuth
     lateinit var db : FirebaseFirestore
-    lateinit var currentUser : User
     private val FCM_API = "https://fcm.googleapis.com/fcm/send"
-    private val registeredDevices = mutableSetOf<BluetoothDevice>()
-    private var bluetoothGattServer: BluetoothGattServer? = null
     private var filter : IntentFilter? = null
     private var isBroadcastReceiverRegistered = false
+    lateinit var blueToothAttendanceCheckerService: BlueToothAttendanceCheckerService
     lateinit var currentCourse : Course
+    lateinit var serviceIntent : Intent
     override fun onCreate(savedInstanceState: Bundle?) {
 
         bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
@@ -83,7 +79,6 @@ class MainActivity : AppCompatActivity() {
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
         mainScreenSetup()
-
     }
 
     private fun mainScreenSetup(){
@@ -105,7 +100,6 @@ class MainActivity : AppCompatActivity() {
         activityMain.visibility = View.GONE
         toolbar.visibility = View.GONE
         db.collection("users").document(auth.uid!!).get().addOnSuccessListener { result ->
-            currentUser = result.toObject(User::class.java) as User
             toolbar.title = result.get("fullName").toString()
             FirebaseMessaging.getInstance().subscribeToTopic("CS442")
 
@@ -137,6 +131,18 @@ class MainActivity : AppCompatActivity() {
 
             }
         }
+    }
+    private val serviceConnection = object : ServiceConnection{
+        override fun onServiceDisconnected(name: ComponentName?) {
+            Log.e("Disonnected", "TRUE")
+        }
+
+        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+            val binder = binder as BlueToothAttendanceCheckerService.LocalBinder
+            val blueToothAttendanceCheckerService = binder.getService()
+            blueToothAttendanceCheckerService.startAdvertising(MY_UUID.toString())
+        }
+
     }
 
     private fun sendNotification(requestQueue: RequestQueue, notification: JSONObject) {
@@ -171,6 +177,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun onCallAttendanceButtonClick(course: Course){
         currentCourse = course
+        serviceIntent = Intent(this@MainActivity, BlueToothAttendanceCheckerService::class.java)
+        serviceIntent.putExtra("courseId", course.courseId)
+        serviceIntent.putExtra("studentId", auth.currentUser?.uid)
+        serviceIntent.putExtra("attendanceCode", MY_UUID.toString())
+        Log.e("UUID", MY_UUID.toString())
         if(bluetoothAdapter.isEnabled){
             val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
@@ -197,14 +208,12 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please turn on bluetooth to check attendance", Toast.LENGTH_SHORT).show()
             } else {
                 bluetoothAdapter.enable()
-                if(requestCode == REQUEST_ENABLE_BT){
-                    val discoverableIntent: Intent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
-                        putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
-                    }
-                    discoverableIntent.putExtra("Hello", "Viet Anh")
-                    setResult(300, discoverableIntent)
-                    startActivityForResult(discoverableIntent, REQUEST_DISCOVERABLE_BL)
+                val discoverableIntent: Intent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+                    putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
                 }
+                discoverableIntent.putExtra("Hello", "Viet Anh")
+                setResult(300, discoverableIntent)
+                startActivityForResult(discoverableIntent, REQUEST_DISCOVERABLE_BL)
             }
         } else if(requestCode == REQUEST_DISCOVERABLE_BL) {
             Log.e("resultCode", resultCode.toString())
@@ -212,11 +221,7 @@ class MainActivity : AppCompatActivity() {
             if(resultCode != 300) {
                 Toast.makeText(this, "Please turn on bluetooth for 5 minutes to check attendance", Toast.LENGTH_SHORT).show()
             } else{
-                filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
-                registerReceiver(bluetoothReceiver, filter)
-                isBroadcastReceiverRegistered = true
-                startAdvertising()
-                startServer()
+                this.bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
                 val requestQueue: RequestQueue by lazy {
                     Volley.newRequestQueue(this@MainActivity)
                 }
@@ -239,101 +244,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-
-    private val advertiseCallback = object : AdvertiseCallback() {
-
-        override fun onStartSuccess(settingsInEffect : AdvertiseSettings) {
-            Log.e(TAG, "LE Advertise Started.")        }
-
-        override fun onStartFailure(errorCode: Int) {
-            Log.e(TAG, "LE Advertise Failed: $errorCode")
-        }
-    }
-
-    private val bluetoothReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.STATE_OFF)
-            when (state) {
-                BluetoothAdapter.STATE_ON -> {
-                    startAdvertising()
-                    startServer()
-                }
-                BluetoothAdapter.STATE_OFF -> {
-                    Log.e("STATE_OFF", "TRUE")
-                    stopAdvertising()
-                    stopServer()
-                }
-            }
-        }
-    }
-
-    private fun startAdvertising() {
-        val bluetoothLeAdvertiser: BluetoothLeAdvertiser? =
-            bluetoothAdapter.bluetoothLeAdvertiser
-        Log.e("BLE advertiser", bluetoothLeAdvertiser.toString())
-        val pUUID = ParcelUuid(MY_UUID)
-
-        bluetoothLeAdvertiser?.let {
-            val settings = AdvertiseSettings.Builder()
-                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
-                .setConnectable(true)
-                .setTimeout(0)
-                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM)
-                .build()
-
-            val data = AdvertiseData.Builder()
-                .setIncludeDeviceName(false)
-                .setIncludeTxPowerLevel(false)
-                .addServiceUuid(pUUID)
-                .build()
-
-            it.startAdvertising(settings, data, advertiseCallback)
-        } ?: Log.e(TAG, "Failed to create advertiser")
-
-        db.collection("courses").document(currentCourse.courseId).update("UUID", MY_UUID.toString())
-    }
-
-    private fun stopAdvertising() {
-        val bluetoothLeAdvertiser: BluetoothLeAdvertiser? =
-            bluetoothAdapter.bluetoothLeAdvertiser
-        bluetoothLeAdvertiser?.let {
-            it.stopAdvertising(advertiseCallback)
-        } ?: Log.e(TAG, "Failed to create advertiser")
-    }
-
-    private val gattServerCallback = object : BluetoothGattServerCallback() {
-
-        override fun onConnectionStateChange(device: BluetoothDevice, status: Int, newState: Int) {
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
-                Log.e(TAG, "BluetoothDevice CONNECTED: $device")
-            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                Log.e(TAG, "BluetoothDevice DISCONNECTED: $device")
-                //Remove device from any active subscriptions
-                registeredDevices.remove(device)
-            }
-        }
-    }
-
-    private fun startServer() {
-        val bluetoothGattServer = bluetoothManager.openGattServer(this@MainActivity, gattServerCallback)
-        val bluetoothGattService = BluetoothGattService(MY_UUID, BluetoothGattService.SERVICE_TYPE_PRIMARY)
-        val bluetoothCharacteristic = BluetoothGattCharacteristic(MY_UUID, BluetoothGattCharacteristic.PROPERTY_READ, BluetoothGattCharacteristic.PERMISSION_READ)
-
-        bluetoothGattService.addCharacteristic(bluetoothCharacteristic)
-        bluetoothGattServer?.addService(bluetoothGattService) ?: Log.e(TAG, "Unable to create GATT server")
-
-        // Initialize the local UI
-        Log.e("Server created", "TRUE")
-    }
-
-    /**
-     * Shut down the GATT server.
-     */
-    private fun stopServer() {
-        bluetoothGattServer?.close()
-    }
-
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.main, menu)
@@ -352,9 +262,11 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
+
     override fun onBackPressed() {
         super.onBackPressed()
         supportFragmentManager.popBackStack()
+
     }
 
     override fun onNavigateUp(): Boolean {
@@ -368,11 +280,6 @@ class MainActivity : AppCompatActivity() {
             bluetoothAdapter.disable()
             Log.e("disable", "disabled")
         }
-        if(isBroadcastReceiverRegistered){
-            this.unregisterReceiver(bluetoothReceiver)
-            isBroadcastReceiverRegistered = false
-        }
-
     }
 
     override fun onResume() {
@@ -383,4 +290,5 @@ class MainActivity : AppCompatActivity() {
         }
 
     }
+
 }

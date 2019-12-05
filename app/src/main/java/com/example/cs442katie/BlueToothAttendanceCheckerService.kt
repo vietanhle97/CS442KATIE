@@ -34,10 +34,11 @@ class BlueToothAttendanceCheckerService : Service() {
     lateinit var db : FirebaseFirestore
     private val binder = LocalBinder()
 
+    var attendanceCode: String? = null
     var codeHost : String? = null;
-    var courseIdHost : String? = null;
-    var studentId : String? = null;
-    var attendanceChecked = false;
+    var courseIdHost : String? = null
+    var studentId : String? = null
+    var attendanceChecked = false
 
     override fun onCreate() {
         super.onCreate()
@@ -48,9 +49,12 @@ class BlueToothAttendanceCheckerService : Service() {
         db = FirebaseFirestore.getInstance()
     }
     override fun onBind(intent: Intent): IBinder {
-        courseIdHost = intent.getStringExtra("courseId");
-        studentId = intent.getStringExtra("studentId");
-        return binder
+        attendanceCode = intent.getStringExtra("attendanceCode")
+        courseIdHost = intent.getStringExtra("courseId")
+        studentId = intent.getStringExtra("studentId")
+        Log.e("courseId", courseIdHost)
+        Log.e("studentId", studentId)
+        return LocalBinder()
     }
 
     //FOR HOST
@@ -65,7 +69,7 @@ class BlueToothAttendanceCheckerService : Service() {
         }
     }
 
-    private fun startAdvertising(attendanceCode : String?) {
+    fun startAdvertising(attendanceCode : String?) {
         val bluetoothLeAdvertiser: BluetoothLeAdvertiser? =
             bluetoothAdapter.bluetoothLeAdvertiser
 
@@ -91,7 +95,7 @@ class BlueToothAttendanceCheckerService : Service() {
         db.collection("courses").document(courseIdHost!!).update("UUID", attendanceCode);
     }
 
-    private fun stopAdvertising() {
+    fun stopAdvertising() {
         val bluetoothLeAdvertiser: BluetoothLeAdvertiser? =
             bluetoothAdapter.bluetoothLeAdvertiser
         bluetoothLeAdvertiser?.let {
@@ -101,7 +105,7 @@ class BlueToothAttendanceCheckerService : Service() {
 
     //FOR STUDENT
 
-    private val receiver = object : BroadcastReceiver() {
+    val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when(intent.action) {
                 BluetoothDevice.ACTION_FOUND -> {
@@ -114,11 +118,17 @@ class BlueToothAttendanceCheckerService : Service() {
     private val bleScanner = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             super.onScanResult(callbackType, result)
-            getServiceUUIDsList(result,courseIdHost);
+            getServiceUUIDsList(result, courseIdHost)
         }
     }
 
-    private fun getServiceUUIDsList(scanResult: ScanResult?, courseId: String?) {
+    private fun scanAvailableBluetooth(){
+        val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
+        registerReceiver(receiver, filter)
+        bluetoothAdapter.startDiscovery()
+    }
+
+    fun getServiceUUIDsList(scanResult: ScanResult?, courseId: String?) {
         val parcelUUIDs = scanResult?.scanRecord?.serviceUuids
         if(parcelUUIDs != null){
             val serviceList = arrayListOf<UUID>()
@@ -143,6 +153,10 @@ class BlueToothAttendanceCheckerService : Service() {
     }
 
     inner class LocalBinder : Binder(){
-        fun getService(): BlueToothAttendanceCheckerService = this@BlueToothAttendanceCheckerService
+        fun getService(): BlueToothAttendanceCheckerService {
+            return this@BlueToothAttendanceCheckerService
+        }
+
     }
+
 }
