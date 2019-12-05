@@ -111,14 +111,8 @@ class BlueToothAttendanceCheckerService : Service() {
 
     //FOR STUDENT
 
-    val receiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            when(intent.action) {
-                BluetoothDevice.ACTION_FOUND -> {
-                    bluetoothScanner.startScan(bleScanner)
-                }
-            }
-        }
+    fun startScan(){
+        bluetoothScanner.startScan(bleScanner)
     }
 
     private val bleScanner = object : ScanCallback() {
@@ -128,11 +122,7 @@ class BlueToothAttendanceCheckerService : Service() {
         }
     }
 
-    private fun scanAvailableBluetooth(){
-        val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
-        registerReceiver(receiver, filter)
-        bluetoothAdapter.startDiscovery()
-    }
+
 
     fun getServiceUUIDsList(scanResult: ScanResult?, courseId: String?) {
         val parcelUUIDs = scanResult?.scanRecord?.serviceUuids

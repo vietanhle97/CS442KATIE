@@ -27,6 +27,7 @@ import android.widget.Toast
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.android.volley.RequestQueue
@@ -60,9 +61,11 @@ class MainActivity : AppCompatActivity() {
     private val FCM_API = "https://fcm.googleapis.com/fcm/send"
     private var filter : IntentFilter? = null
     private var isBroadcastReceiverRegistered = false
-    lateinit var blueToothAttendanceCheckerService: BlueToothAttendanceCheckerService
     lateinit var currentCourse : Course
     lateinit var serviceIntent : Intent
+
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
 
         bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager

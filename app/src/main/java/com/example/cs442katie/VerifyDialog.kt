@@ -18,6 +18,7 @@ import android.graphics.Bitmap
 import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.IBinder
 import android.os.Parcelable
 import android.os.RemoteException
 import android.provider.MediaStore
@@ -27,13 +28,13 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.ProgressBar
-import android.widget.Toast
+import android.widget.*
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
+import androidx.core.view.isInvisible
 import androidx.fragment.app.DialogFragment
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 
 import com.example.cs442katie.R
 import com.google.android.gms.ads.identifier.AdvertisingIdClient
@@ -68,8 +69,16 @@ class VerifyDialog : DialogFragment() {
     lateinit var bluetoothScanner : BluetoothLeScanner
     lateinit var bluetoothManager: BluetoothManager
     lateinit var bluetoothAdapter: BluetoothAdapter
-    lateinit var items : String
     lateinit var db : FirebaseFirestore
+    lateinit var courseId: String
+    lateinit var contentView: View;
+
+    private val mMessageReceiver = object: BroadcastReceiver() {
+        override fun onReceive(context : Context , intent : Intent) {
+            contentView.findViewById<RelativeLayout>(R.id.verify_board).visibility = View.INVISIBLE
+            contentView.findViewById<TextView>(R.id.attendance_checked_notification).visibility = View.VISIBLE
+        }
+    };
 
     companion object {
         fun newInstance(courseId : String) : VerifyDialog{
@@ -84,7 +93,7 @@ class VerifyDialog : DialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val builder = AlertDialog.Builder(activity)
-        val contentView = activity?.layoutInflater?.inflate(R.layout.fragment_verify_dialog, null) as View
+        contentView = activity?.layoutInflater?.inflate(R.layout.fragment_verify_dialog, null) as View
         builder.setView(contentView)
         val dialog = builder.create()
         bluetoothManager = activity!!.applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
@@ -92,37 +101,40 @@ class VerifyDialog : DialogFragment() {
         bluetoothScanner = bluetoothAdapter.bluetoothLeScanner
         db = FirebaseFirestore.getInstance()
         if(arguments?.getString("courseId") != null){
-            items = arguments?.getString("courseId").toString()
-            Log.e("items", items)
+            courseId = arguments?.getString("courseId").toString()
+            Log.e("items", courseId)
         }
 
-        bluetooth = contentView.findViewById(R.id.bluetooth)
         bluetoothProgress = contentView.findViewById(R.id.ble_progress)
         camera = contentView.findViewById(R.id.camera)
         cameraProgress = contentView.findViewById(R.id.camera_progress)
-        onClickBluetoothButton()
         onClickCameraButton()
+
+
+        LocalBroadcastManager.getInstance(activity!!.applicationContext)
+            .registerReceiver(mMessageReceiver,
+                IntentFilter("attendanceChecked"));
         return dialog
     }
-    private fun onClickBluetoothButton(){
-        bluetooth.setOnClickListener(View.OnClickListener {
-            if (!bluetoothAdapter.isEnabled) {
-                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
-            } else{
-                bluetooth.visibility = View.GONE
-                bluetoothProgress.visibility = View.VISIBLE
-                scanAvailableBluetooth()
-            }
-        })
-
-    }
+//    private fun onClickBluetoothButton(){
+//        bluetooth.setOnClickListener(View.OnClickListener {
+//            if (!bluetoothAdapter.isEnabled) {
+//                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+//                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
+//            } else{
+//                bluetooth.visibility = View.GONE
+//                scanAvailableBluetooth()
+//            }
+//        })
+//
+//    }
 
     private fun onClickCameraButton(){
         camera.setOnClickListener(View.OnClickListener {
             val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-            if(takePictureIntent.resolveActivity(activity!!.packageManager) != null){
 
+
+            if(takePictureIntent.resolveActivity(activity!!.packageManager) != null){
                 startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE)
             }
 
@@ -138,31 +150,32 @@ class VerifyDialog : DialogFragment() {
                 Log.e("result Code", resultCode.toString())
                 Log.e("NULL", (data?.extras?.get("data")).toString())
             }
+
+
         }
-    }
 
-    private fun addUploadRecordToDb(uri: String){
-        val db = FirebaseFirestore.getInstance()
+        //suppose checked identity
+        val newIntent = Intent(activity!!.applicationContext, BlueToothAttendanceCheckerService ::class.java)
+        newIntent.putExtra("courseId", courseId)
 
-        val data = HashMap<String, Any>()
-        data["imageUrl"] = uri
-
-        db.collection("posts")
-            .add(data)
-            .addOnSuccessListener { documentReference ->
-                Toast.makeText(activity!!.applicationContext, "Saved to DB", Toast.LENGTH_LONG).show()
+        val serviceConnection = object : ServiceConnection{
+            override fun onServiceDisconnected(name: ComponentName?) {
+                Log.e("Disonnected", "TRUE")
             }
-            .addOnFailureListener { e ->
-                Toast.makeText(activity!!.applicationContext, "Error saving to DB", Toast.LENGTH_LONG).show()
+
+            override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+                val binder = binder as BlueToothAttendanceCheckerService.LocalBinder
+                val blueToothAttendanceCheckerService = binder.getService()
+                blueToothAttendanceCheckerService.startScan()
             }
+
+        }
+
+        activity!!.applicationContext.bindService(newIntent, serviceConnection, Context.BIND_AUTO_CREATE)
+
     }
 
-    private fun scanAvailableBluetooth(){
-        val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
-        activity!!.applicationContext.registerReceiver(receiver, filter)
-        isRegistered = true
-        bluetoothAdapter.startDiscovery()
-    }
+
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -189,7 +202,7 @@ class VerifyDialog : DialogFragment() {
             for(i in 0 until parcelUUIDs.size){
                 val serviceUUID = parcelUUIDs[i].uuid
                 Log.e("UUID", serviceUUID.toString())
-                db.collection("courses").document(items).get().addOnSuccessListener { result ->
+                db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
                     if(result.get("UUID") == serviceUUID.toString()){
                         bluetooth.setImageResource(R.drawable.ic_checked)
                         bluetooth.visibility = View.VISIBLE
