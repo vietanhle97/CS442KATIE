@@ -22,6 +22,12 @@ import org.json.JSONObject
 import java.io.FileDescriptor
 import java.util.*
 import kotlin.collections.ArrayList
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.core.content.ContextCompat.getSystemService
+import android.icu.lang.UCharacter.GraphemeClusterBreak.T
+import android.R.attr.name
+
+
 
 
 private const val TAG = "Service Bluetooth"
@@ -135,11 +141,17 @@ class BlueToothAttendanceCheckerService : Service() {
                         newDb.update("lecture", FieldValue.arrayRemove(lastElem))
                         newDb.update("lecture", FieldValue.arrayUnion(lastElem + "-" + studentId))
                         attendanceChecked = true
+                        sendMessage()
                         bluetoothScanner.stopScan(bleScanner)
                     }
                 }
             }
         }
+    }
+
+    private fun sendMessage() {
+        val intent = Intent("attendanceChecked")
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
     }
 
     inner class LocalBinder : Binder(){
