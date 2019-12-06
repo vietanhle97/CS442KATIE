@@ -26,8 +26,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.core.content.ContextCompat.getSystemService
 import android.icu.lang.UCharacter.GraphemeClusterBreak.T
 import android.R.attr.name
-
-
+import java.text.SimpleDateFormat
 
 
 private const val TAG = "Service Bluetooth"
@@ -58,8 +57,7 @@ class BlueToothAttendanceCheckerService : Service() {
         attendanceCode = intent.getStringExtra("attendanceCode")
         courseIdHost = intent.getStringExtra("courseId")
         studentId = intent.getStringExtra("studentId")
-        Log.e("courseId", courseIdHost)
-        Log.e("studentId", studentId)
+
         return LocalBinder()
     }
 
@@ -96,6 +94,10 @@ class BlueToothAttendanceCheckerService : Service() {
                 .build()
 
             it.startAdvertising(settings, data, advertiseCallback)
+            val newDb = FirebaseFirestore.getInstance().collection("courses").document(courseIdHost!!)
+            val sdf = SimpleDateFormat("dd/M/yyyy")
+            val currentDate = sdf.format(Date())
+            newDb.update("lecture", FieldValue.arrayUnion(currentDate))
         } ?: Log.e(TAG, "Failed to create advertiser")
 
         db.collection("courses").document(courseIdHost!!).update("UUID", attendanceCode);

@@ -35,6 +35,7 @@ import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
 import io.grpc.internal.TimeProvider
@@ -42,6 +43,7 @@ import kotlinx.android.synthetic.main.app_bar_main.*
 import org.json.JSONException
 import org.json.JSONObject
 import java.nio.charset.Charset
+import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
@@ -171,6 +173,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun onCourseMainItemClick(course: Course){
         val intent = Intent(this@MainActivity, CourseActivity::class.java)
+        intent.putExtra("studentId", auth.currentUser!!.uid)
         intent.putExtra("courseId", course.courseId)
         intent.putExtra("courseName", course.courseName)
         intent.putExtra("isAdmin", course.admin == auth.currentUser!!.uid)

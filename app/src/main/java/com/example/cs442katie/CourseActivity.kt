@@ -43,6 +43,7 @@ class CourseActivity : AppCompatActivity() {
     lateinit var db : FirebaseFirestore
     private val REQUEST_IMAGE_CAPTURE = 100
     lateinit var courseId : String
+    lateinit var studentId : String
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_course)
@@ -50,6 +51,7 @@ class CourseActivity : AppCompatActivity() {
 
         toolbar.title = intent.extras?.getString("courseName")
         courseId = intent.extras?.getString("courseId") as String
+        studentId = intent.extras?.getString("studentId") as String
         val isAdmin = intent.extras?.getBoolean("isAdmin")
         val button_verify = findViewById<Button>(R.id.button_verify)
 
@@ -60,11 +62,11 @@ class CourseActivity : AppCompatActivity() {
             if(courseId != null){
                 db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
                     if(result.get("isCheckingAttendance") == true){
-                        val verifyDialog = VerifyDialog.newInstance(courseId)
+                        val verifyDialog = VerifyDialog.newInstance(courseId, studentId)
                         verifyDialog.show(supportFragmentManager, "VerifyDialog")
                         button_verify.visibility = View.VISIBLE
                         button_verify.setOnClickListener(View.OnClickListener {
-                            val verifyDialog = VerifyDialog.newInstance(courseId)
+                            val verifyDialog = VerifyDialog.newInstance(courseId, studentId)
                             verifyDialog.show(supportFragmentManager, "VerifyDialog")
                         })
                     }

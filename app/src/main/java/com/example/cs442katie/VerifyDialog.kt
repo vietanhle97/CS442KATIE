@@ -44,6 +44,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.UploadTask
+import kotlinx.android.synthetic.main.activity_sign_up.*
 import kotlinx.android.synthetic.main.course_main.*
 import kotlinx.android.synthetic.main.fragment_verify_dialog.*
 import org.altbeacon.beacon.BeaconConsumer
@@ -71,6 +72,7 @@ class VerifyDialog : DialogFragment() {
     lateinit var bluetoothAdapter: BluetoothAdapter
     lateinit var db : FirebaseFirestore
     lateinit var courseId: String
+    lateinit var studentId : String
     lateinit var contentView: View;
 
     private val mMessageReceiver = object: BroadcastReceiver() {
@@ -81,10 +83,11 @@ class VerifyDialog : DialogFragment() {
     };
 
     companion object {
-        fun newInstance(courseId : String) : VerifyDialog{
+        fun newInstance(courseId : String, studentId : String) : VerifyDialog{
             val dialog = VerifyDialog()
             val args = Bundle().apply {
-                courseId?.let { putString("courseId", it) }
+                courseId?.let { putString("courseId", it)
+                studentId?.let { putString("studentId", it)}}
             }
             dialog.arguments = args
             return dialog
@@ -102,7 +105,7 @@ class VerifyDialog : DialogFragment() {
         db = FirebaseFirestore.getInstance()
         if(arguments?.getString("courseId") != null){
             courseId = arguments?.getString("courseId").toString()
-            Log.e("items", courseId)
+            studentId = arguments?.getString("studentId").toString()
         }
 
         bluetoothProgress = contentView.findViewById(R.id.ble_progress)
@@ -157,6 +160,7 @@ class VerifyDialog : DialogFragment() {
         //suppose checked identity
         val newIntent = Intent(activity!!.applicationContext, BlueToothAttendanceCheckerService ::class.java)
         newIntent.putExtra("courseId", courseId)
+        newIntent.putExtra("studentId", studentId)
 
         val serviceConnection = object : ServiceConnection{
             override fun onServiceDisconnected(name: ComponentName?) {
@@ -177,58 +181,58 @@ class VerifyDialog : DialogFragment() {
 
 
 
-    private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            when(intent.action) {
-                BluetoothDevice.ACTION_FOUND -> {
-                    bluetoothLeScanner.startScan(bleScanner)
-
-                }
-            }
-        }
-    }
-
-    private val bleScanner = object : ScanCallback() {
-        override fun onScanResult(callbackType: Int, result: ScanResult?) {
-            super.onScanResult(callbackType, result)
-            getServiceUUIDsList(result)
-        }
-    }
-
-    private fun getServiceUUIDsList(scanResult: ScanResult?) {
-        val parcelUUIDs = scanResult?.scanRecord?.serviceUuids
-        if(parcelUUIDs != null){
-            val serviceList = arrayListOf<UUID>()
-            for(i in 0 until parcelUUIDs.size){
-                val serviceUUID = parcelUUIDs[i].uuid
-                Log.e("UUID", serviceUUID.toString())
-                db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
-                    if(result.get("UUID") == serviceUUID.toString()){
-                        bluetooth.setImageResource(R.drawable.ic_checked)
-                        bluetooth.visibility = View.VISIBLE
-                        bluetooth.isClickable = false
-                        bluetoothProgress.visibility = View.GONE
-                        bluetoothLeScanner.stopScan(bleScanner)
-                        bluetoothAdapter.cancelDiscovery()
-                        Log.e("Success", "SUCCESSS")
-                    }
-                }
-            }
-        }
-    }
-
-    private val bluetoothLeScanner: BluetoothLeScanner
-        get() {
-            return bluetoothAdapter.bluetoothLeScanner
-        }
+//    private val receiver = object : BroadcastReceiver() {
+//        override fun onReceive(context: Context, intent: Intent) {
+//            when(intent.action) {
+//                BluetoothDevice.ACTION_FOUND -> {
+//                    bluetoothLeScanner.startScan(bleScanner)
+//
+//                }
+//            }
+//        }
+//    }
+//
+//    private val bleScanner = object : ScanCallback() {
+//        override fun onScanResult(callbackType: Int, result: ScanResult?) {
+//            super.onScanResult(callbackType, result)
+//            getServiceUUIDsList(result)
+//        }
+//    }
+//
+//    private fun getServiceUUIDsList(scanResult: ScanResult?) {
+//        val parcelUUIDs = scanResult?.scanRecord?.serviceUuids
+//        if(parcelUUIDs != null){
+//            val serviceList = arrayListOf<UUID>()
+//            for(i in 0 until parcelUUIDs.size){
+//                val serviceUUID = parcelUUIDs[i].uuid
+//                Log.e("UUID", serviceUUID.toString())
+//                db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
+//                    if(result.get("UUID") == serviceUUID.toString()){
+//                        bluetooth.setImageResource(R.drawable.ic_checked)
+//                        bluetooth.visibility = View.VISIBLE
+//                        bluetooth.isClickable = false
+//                        bluetoothProgress.visibility = View.GONE
+//                        bluetoothLeScanner.stopScan(bleScanner)
+//                        bluetoothAdapter.cancelDiscovery()
+//                        Log.e("Success", "SUCCESSS")
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//    private val bluetoothLeScanner: BluetoothLeScanner
+//        get() {
+//            return bluetoothAdapter.bluetoothLeScanner
+//        }
 
     override fun onStop() {
         Log.e("close dialog", "true")
         Log.e("ScanDeviceActivity", "onStop()")
         super.onStop()
-        if(isRegistered){
-            bluetoothLeScanner.stopScan(bleScanner)
-            bluetoothAdapter.cancelDiscovery()
-        }
+//        if(isRegistered){
+//            bluetoothLeScanner.stopScan(bleScanner)
+//            bluetoothAdapter.cancelDiscovery()
+//        }
     }
 }
