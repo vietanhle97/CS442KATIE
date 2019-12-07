@@ -74,7 +74,7 @@ class RegisterFragment : Fragment() {
                                 "fullName" to fullName,
                                 "studentId" to studentId,
                                 "email" to email,
-                                "course" to arrayListOf("CS442", "CS489")
+                                "course" to hashMapOf("CS442" to 0, "CS489" to 0)
                             )
                             db.collection("users").document(id).set(newUser).addOnSuccessListener {
                                 // We auto enroll every students to the CS442 course.

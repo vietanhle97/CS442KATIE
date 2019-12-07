@@ -1,2 +1,2 @@
-include ':app'
+include ':app', ':goindoor-2.4.1'
 rootProject.name='CS442KATIE'

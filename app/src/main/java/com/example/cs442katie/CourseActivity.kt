@@ -29,9 +29,12 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.DialogFragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.cs442katie.VerifyDialog
 import com.google.android.gms.tasks.Continuation
 import com.google.android.gms.tasks.Task
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.UploadTask
@@ -41,7 +44,7 @@ import java.util.HashMap
 
 class CourseActivity : AppCompatActivity() {
     lateinit var db : FirebaseFirestore
-    private val REQUEST_IMAGE_CAPTURE = 100
+    lateinit var auth: FirebaseAuth
     lateinit var courseId : String
     lateinit var studentId : String
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,6 +60,7 @@ class CourseActivity : AppCompatActivity() {
 
 
         db = FirebaseFirestore.getInstance()
+        auth = FirebaseAuth.getInstance()
         setSupportActionBar(toolbar)
         if(isAdmin == false){
             if(courseId != null){
@@ -70,6 +74,31 @@ class CourseActivity : AppCompatActivity() {
                             verifyDialog.show(supportFragmentManager, "VerifyDialog")
                         })
                     }
+                }
+            }
+        } else{
+            db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
+                val studentList = result.get("student") as ArrayList<String>
+                val lectureList = result.get("lecture") as ArrayList<String>
+                val todayLecture = lectureList[lectureList.size - 1]
+                val todayAttendance = arrayListOf<Boolean>()
+                for (i in studentList){
+                    todayAttendance.add(todayLecture.contains(i))
+                }
+
+                val userDb = FirebaseFirestore.getInstance().collection("users").get()
+                userDb.addOnSuccessListener {result ->
+                    val userList = result.filter {
+                        it.id in studentList
+                    }.map {
+                        it.toObject(User::class.java)
+                    }
+                    val courseMainAdapter = AttendanceListAdapter(this@CourseActivity, userList, courseId, todayAttendance)
+                    val recycler = findViewById<RecyclerView>(R.id.student_list)
+                    recycler.setHasFixedSize(true)
+
+                    recycler.layoutManager = LinearLayoutManager(this@CourseActivity)
+                    recycler.adapter = courseMainAdapter
                 }
             }
         }

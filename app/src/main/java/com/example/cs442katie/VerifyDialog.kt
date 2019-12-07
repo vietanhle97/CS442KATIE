@@ -47,10 +47,6 @@ import com.google.firebase.storage.UploadTask
 import kotlinx.android.synthetic.main.activity_sign_up.*
 import kotlinx.android.synthetic.main.course_main.*
 import kotlinx.android.synthetic.main.fragment_verify_dialog.*
-import org.altbeacon.beacon.BeaconConsumer
-import org.altbeacon.beacon.BeaconManager
-import org.altbeacon.beacon.MonitorNotifier
-import org.altbeacon.beacon.Region
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 import java.util.*
@@ -63,7 +59,6 @@ class VerifyDialog : DialogFragment() {
     private val REQUEST_ENABLE_BT = 1
     private val REQUEST_IMAGE_CAPTURE = 2
     lateinit var bluetooth : ImageView
-    lateinit var bluetoothProgress : ProgressBar
     lateinit var  camera : ImageView
     lateinit var cameraProgress : ProgressBar
     private var isRegistered = false
@@ -108,7 +103,6 @@ class VerifyDialog : DialogFragment() {
             studentId = arguments?.getString("studentId").toString()
         }
 
-        bluetoothProgress = contentView.findViewById(R.id.ble_progress)
         camera = contentView.findViewById(R.id.camera)
         cameraProgress = contentView.findViewById(R.id.camera_progress)
         onClickCameraButton()

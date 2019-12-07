@@ -27,6 +27,7 @@ import androidx.core.content.ContextCompat.getSystemService
 import android.icu.lang.UCharacter.GraphemeClusterBreak.T
 import android.R.attr.name
 import java.text.SimpleDateFormat
+import kotlin.collections.HashMap
 
 
 private const val TAG = "Service Bluetooth"
@@ -142,6 +143,12 @@ class BlueToothAttendanceCheckerService : Service() {
                         val newDb = FirebaseFirestore.getInstance().collection("courses").document(courseId!!)
                         newDb.update("lecture", FieldValue.arrayRemove(lastElem))
                         newDb.update("lecture", FieldValue.arrayUnion(lastElem + "-" + studentId))
+                        FirebaseFirestore.getInstance().collection("users").document(studentId!!).get().addOnSuccessListener { result ->
+                            val map = result.get("course") as HashMap<String, Int>
+                            val cnt = map[courseId]!! + 1
+                            FirebaseFirestore.getInstance().collection("users").document(studentId!!).update(
+                                mapOf("course.$courseId" to cnt))
+                        }
                         attendanceChecked = true
                         sendMessage()
                         bluetoothScanner.stopScan(bleScanner)

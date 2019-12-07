@@ -1,0 +1,54 @@
+package com.example.cs442katie
+
+import android.content.Context
+import android.content.res.Resources
+import android.graphics.drawable.Drawable
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.TextView
+import androidx.cardview.widget.CardView
+import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.RecyclerView
+import io.opencensus.resource.Resource
+import org.w3c.dom.Text
+
+class AttendanceListAdapter(
+    val context: Context,
+    val userList: List<User>,
+    val courseId: String,
+    val today_attendance: ArrayList<Boolean>): RecyclerView.Adapter<AttendanceListAdapter.CourseMainViewHolder> () {
+
+
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CourseMainViewHolder {
+        val view = LayoutInflater.from(context).inflate(R.layout.attendance_list, parent, false)
+        return CourseMainViewHolder(view)
+    }
+
+    override fun getItemCount(): Int {
+        return userList.size
+    }
+
+    override fun onBindViewHolder(holder: CourseMainViewHolder, position: Int) {
+        val user = userList[position]
+        holder.full_name.text = user.fullName
+        holder.count_attendance.text = user.course[courseId].toString()
+        if(today_attendance[position]){
+            holder.today_attendance.text = "Yes"
+        } else{
+            holder.today_attendance.text = "No"
+        }
+
+    }
+
+    class CourseMainViewHolder(view: View) : RecyclerView.ViewHolder(view){
+        val full_name = view.findViewById<TextView>(R.id.full_name)
+        val today_attendance = view.findViewById<TextView>(R.id.today_attendance)
+        val count_attendance =view.findViewById<TextView>(R.id.count_attendance)
+
+
+    }
+}

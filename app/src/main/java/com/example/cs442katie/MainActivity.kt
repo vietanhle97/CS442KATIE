@@ -107,8 +107,8 @@ class MainActivity : AppCompatActivity() {
         db.collection("users").document(auth.uid!!).get().addOnSuccessListener { result ->
             toolbar.title = result.get("fullName").toString()
             FirebaseMessaging.getInstance().subscribeToTopic("CS442")
-
-            val userCourseList = result.get("course") as ArrayList<String>
+            val map = result.get("course") as HashMap<String, Int>
+            val userCourseList = map.keys
             val coursesDatabase = FirebaseFirestore.getInstance().collection("courses").get()
             coursesDatabase.addOnSuccessListener { documents ->
                 val courseList = documents.filter {
@@ -278,6 +278,9 @@ class MainActivity : AppCompatActivity() {
     override fun onNavigateUp(): Boolean {
         val navController = findNavController(R.id.nav_host_fragment)
         return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+    }
+
+    private fun onLocation(){
     }
 
     override fun onDestroy() {
