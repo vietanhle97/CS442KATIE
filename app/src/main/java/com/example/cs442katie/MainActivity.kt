@@ -5,7 +5,6 @@ import android.bluetooth.*
 import android.bluetooth.le.*
 import android.content.*
 import android.content.pm.PackageManager
-import android.media.Image
 import android.os.Bundle
 import android.os.IBinder
 import android.os.ParcelUuid
@@ -22,7 +21,10 @@ import androidx.appcompat.widget.Toolbar
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.*
+import android.widget.ProgressBar
+import android.widget.RelativeLayout
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -100,7 +102,6 @@ class MainActivity : AppCompatActivity() {
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
-
         val toggle = ActionBarDrawerToggle(this@MainActivity, drawerLayout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
@@ -109,16 +110,11 @@ class MainActivity : AppCompatActivity() {
         db.collection("users").document(auth.uid!!).get().addOnSuccessListener { result ->
             toolbar.title = result.get("fullName").toString()
             val headerView = navView.getHeaderView(0)
-            headerView.findViewById<TextView>(R.id.user_name).text = result.get("fullName").toString()
-            val faceUri = result.get("faceUri").toString()
-            val faceRef = FirebaseStorage.getInstance().reference.child(faceUri)
-            // Download directly from StorageReference using Glide
-            // (See MyAppGlideModule for Loader registration)
+            val faceRef = FirebaseStorage.getInstance().reference.child(result.get("faceUri").toString())
             faceRef.downloadUrl.addOnSuccessListener {
-                Glide.with(this /* context */)
-                    .load(it)
-                    .into(headerView.findViewById<ImageView>(R.id.main_user_avatar))
+                Glide.with(this).load(it).into(headerView.findViewById(R.id.main_user_avatar))
             }
+            headerView.findViewById<TextView>(R.id.user_name).text = result.get("fullName").toString()
             FirebaseMessaging.getInstance().subscribeToTopic("CS442")
             val map = result.get("course") as HashMap<String, Int>
             val userCourseList = map.keys

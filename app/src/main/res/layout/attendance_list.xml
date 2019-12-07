@@ -14,23 +14,27 @@
         android:padding="10dp"
         android:id="@+id/full_name"
         android:text="Le Viet Anh Le Viet Anh"
-        android:textSize="20dp"/>
+        android:textSize="20dp"
+        android:background="@drawable/text_view_border"
+        />
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_toStartOf="@id/count_attendance"
         android:text="Yes"
-        android:layout_marginEnd="10dp"
+        android:textColor="@color/dark_green"
         android:id="@+id/today_attendance"
         android:padding="10dp"
+        android:background="@drawable/text_view_border"
         android:textSize="20dp"/>
     <TextView
         android:id="@+id/count_attendance"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
-        android:layout_marginEnd="10dp"
         android:padding="10dp"
         android:text="20"
+        android:background="@drawable/text_view_border"
         android:textSize="20dp"/>
 </RelativeLayout>
+
