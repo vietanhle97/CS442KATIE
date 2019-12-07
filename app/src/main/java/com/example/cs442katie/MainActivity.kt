@@ -53,12 +53,14 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
+import kotlin.concurrent.schedule
+import kotlin.concurrent.scheduleAtFixedRate
 
 private const val TAG = "KATIE"
 
 
 class MainActivity : AppCompatActivity() {
-    private val MY_UUID = UUID.randomUUID()
+    private var MY_UUID = UUID.randomUUID()
     private lateinit var bluetoothManager: BluetoothManager
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private val REQUEST_ENABLE_BT = 20
@@ -71,6 +73,7 @@ class MainActivity : AppCompatActivity() {
     private var isBroadcastReceiverRegistered = false
     lateinit var currentCourse : Course
     lateinit var serviceIntent : Intent
+    var serviceIsBound = false;
 
 
 
@@ -178,26 +181,27 @@ class MainActivity : AppCompatActivity() {
 
     private val serviceConnection = object : ServiceConnection{
         override fun onServiceDisconnected(name: ComponentName?) {
-            Log.e("Disonnected", "TRUE")
+            serviceIsBound = false
         }
 
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             val binder = binder as BlueToothAttendanceCheckerService.LocalBinder
             val blueToothAttendanceCheckerService = binder.getService()
+            serviceIsBound = true;
+
             blueToothAttendanceCheckerService.startAdvertising(MY_UUID.toString())
+            loopChecking();
         }
 
     }
 
     private fun sendNotification(requestQueue: RequestQueue, notification: JSONObject) {
-        Log.e("TAG", "sendNotification")
         val jsonObjectRequest = object : JsonObjectRequest(FCM_API, notification,
             Response.Listener<JSONObject> { response ->
                 // Log.i("TAG", "onResponse: $response")
             },
             Response.ErrorListener {
                 Toast.makeText(applicationContext, "Request error", Toast.LENGTH_LONG).show()
-                Log.e("TAG", "onErrorResponse: Didn't work")
             }) {
 
             override fun getHeaders(): Map<String, String> {
@@ -216,7 +220,6 @@ class MainActivity : AppCompatActivity() {
         intent.putExtra("courseId", course.courseId)
         intent.putExtra("courseName", course.courseName)
         intent.putExtra("isAdmin", course.admin == auth.currentUser!!.uid)
-        Log.e("course", course.toString())
         startActivity(intent)
     }
 
@@ -226,18 +229,17 @@ class MainActivity : AppCompatActivity() {
         serviceIntent.putExtra("courseId", course.courseId)
         serviceIntent.putExtra("studentId", auth.currentUser?.uid)
         serviceIntent.putExtra("attendanceCode", MY_UUID.toString())
-        Log.e("UUID", MY_UUID.toString())
+        serviceIntent.putExtra("hostId", course.admin)
         if(bluetoothAdapter.isEnabled){
             val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
         } else{
             val discoverableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
-                putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+                putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 60)
                 putExtra("Hello", "Viet Anh")
 
             }
-            discoverableIntent.action = Intent.ACTION_SEND
-            setResult(300, discoverableIntent)
+            setResult(60, discoverableIntent)
             startActivityForResult(intent, REQUEST_DISCOVERABLE_BL)
         }
 
@@ -255,18 +257,22 @@ class MainActivity : AppCompatActivity() {
             } else {
                 bluetoothAdapter.enable()
                 val discoverableIntent: Intent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
-                    putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+                    putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 60)
                 }
                 discoverableIntent.putExtra("Hello", "Viet Anh")
-                setResult(300, discoverableIntent)
+                setResult(60, discoverableIntent)
                 startActivityForResult(discoverableIntent, REQUEST_DISCOVERABLE_BL)
             }
         } else if(requestCode == REQUEST_DISCOVERABLE_BL) {
             Log.e("resultCode", resultCode.toString())
 
-            if(resultCode != 300) {
-                Toast.makeText(this, "Please turn on bluetooth for 5 minutes to check attendance", Toast.LENGTH_SHORT).show()
-            } else{
+            if(resultCode != 60) {
+                Toast.makeText(
+                    this,
+                    "Please turn on bluetooth for 60 secs to check attendance",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }else{
                 this.bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
                 val requestQueue: RequestQueue by lazy {
                     Volley.newRequestQueue(this@MainActivity)
@@ -278,6 +284,7 @@ class MainActivity : AppCompatActivity() {
                     notificationData.put("title", currentCourse.courseName)
                     notificationData.put("message", "Class is checking attendance")
                     notificationData.put("courseId", currentCourse.courseId)
+                    notificationData.put("isAdmin", currentCourse.admin == auth.currentUser!!.uid)
                     notification.put("data", notificationData)
                     Log.e("notification", notification.toString(2))
                 } catch (e: JSONException) {
@@ -319,11 +326,13 @@ class MainActivity : AppCompatActivity() {
         return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
     }
 
-    private fun onLocation(){
-    }
 
     override fun onDestroy() {
         super.onDestroy()
+        if(serviceIsBound){
+            unbindService(serviceConnection);
+            serviceIsBound = false;
+        }
         if(bluetoothAdapter.isEnabled){
             bluetoothAdapter.disable()
             Log.e("disable", "disabled")
