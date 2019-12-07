@@ -5,6 +5,7 @@ import android.bluetooth.*
 import android.bluetooth.le.*
 import android.content.*
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.*
 import android.util.Log
 import androidx.navigation.findNavController
@@ -38,6 +39,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
 import io.grpc.internal.TimeProvider
 import kotlinx.android.synthetic.main.app_bar_main.*
+import kotlinx.android.synthetic.main.course_main.*
 import org.json.JSONException
 import org.json.JSONObject
 import java.nio.charset.Charset
@@ -139,17 +141,26 @@ class MainActivity : AppCompatActivity() {
     fun loopChecking(){
 
         Timer("schedule", true).schedule(10000) {
-            MY_UUID = UUID.randomUUID()
-            serviceIntent.putExtra("attendanceCode", MY_UUID.toString())
-            if(serviceIsBound){
-                unbindService(serviceConnection)
-                var newIntent = Intent(this@MainActivity, BlueToothAttendanceCheckerService::class.java)
-                stopService(newIntent)
+            var stop = false;
+            FirebaseFirestore.getInstance().collection("courses").document(currentCourse.courseId).
+                get().addOnSuccessListener {
+                val checkingAttendance = it.get("isCheckingAttendance")
+                if(checkingAttendance == false)
+                    stop = true;
             }
-            if(!bluetoothAdapter.isEnabled){
-                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            } else{
-                this@MainActivity.bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
+            if(!stop){
+                MY_UUID = UUID.randomUUID()
+                serviceIntent.putExtra("attendanceCode", MY_UUID.toString())
+                if(serviceIsBound){
+                    unbindService(serviceConnection)
+                    var newIntent = Intent(this@MainActivity, BlueToothAttendanceCheckerService::class.java)
+                    stopService(newIntent)
+                }
+                if(!bluetoothAdapter.isEnabled){
+                    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                } else{
+                    this@MainActivity.bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
+                }
             }
         }
     }
@@ -217,6 +228,7 @@ class MainActivity : AppCompatActivity() {
             setResult(60, discoverableIntent)
             startActivityForResult(discoverableIntent, REQUEST_DISCOVERABLE_BL)
         }
+
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
@@ -273,7 +285,6 @@ class MainActivity : AppCompatActivity() {
             Log.d("sign out", "Signed out")
             auth.signOut()
             val intent = Intent(this@MainActivity, StartActivity :: class.java)
-            startActivity(intent)
             finish()
             return true
         }

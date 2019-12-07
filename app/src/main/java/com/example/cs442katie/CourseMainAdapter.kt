@@ -2,6 +2,7 @@ package com.example.cs442katie
 
 import android.content.Context
 import android.content.res.Resources
+import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.util.Log
 import android.view.LayoutInflater
@@ -12,7 +13,9 @@ import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.firestore.FirebaseFirestore
 import io.opencensus.resource.Resource
+import kotlinx.android.synthetic.main.course_main.*
 
 class CourseMainAdapter(
     val context: Context,
@@ -61,7 +64,18 @@ class CourseMainAdapter(
             })
 
             callAttendanceButton.setOnClickListener(View.OnClickListener {
-                attendanceListener(courseMain)
+
+                if(callAttendanceButton.text != "STOP CALLING"){
+                    attendanceListener(courseMain)
+                    callAttendanceButton.text = "STOP CALLING"
+                    callAttendanceButton.setBackgroundColor(Color.BLACK)
+                    callAttendanceButton.setTextColor(Color.WHITE)
+                } else {
+                    FirebaseFirestore.getInstance().collection("courses").document(courseMain.courseId).update("isCheckingAttendance", false)
+                    callAttendanceButton.text = "CALL ATTENDANCE"
+                    callAttendanceButton.setBackgroundColor(Color.WHITE)
+                    callAttendanceButton.setTextColor(Color.BLACK)
+                }
             })
         }
     }

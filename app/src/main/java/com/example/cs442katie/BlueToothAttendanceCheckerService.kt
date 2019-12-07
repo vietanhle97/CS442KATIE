@@ -87,6 +87,15 @@ class BlueToothAttendanceCheckerService : Service() {
     }
 
     fun startAdvertising(attendanceCode : String?) {
+        var stop = false;
+        FirebaseFirestore.getInstance().collection("courses").document(courseIdHost!!).
+            get().addOnSuccessListener {
+            val checkingAttendance = it.get("isCheckingAttendance")
+            if(checkingAttendance == false)
+                stop = true;
+        }
+        if(stop)
+            return;
         advertising = true;
         val bluetoothLeAdvertiser: BluetoothLeAdvertiser? =
             bluetoothAdapter.bluetoothLeAdvertiser
@@ -152,10 +161,19 @@ class BlueToothAttendanceCheckerService : Service() {
     //FOR STUDENT
     fun loopChecking(){
         Timer("schedule", true).schedule(5000) {
+            var stop = false;
+            FirebaseFirestore.getInstance().collection("courses").document(courseIdHost!!).
+                get().addOnSuccessListener {
+                val checkingAttendance = it.get("isCheckingAttendance")
+                if(checkingAttendance == false)
+                    stop = true;
+            }
             if(scanning)
                 bluetoothScanner.stopScan(bleScanner)
             scanning = false;
-            startScan()
+            if(!stop){
+                startScan()
+            }
         }
     }
 
@@ -190,20 +208,33 @@ class BlueToothAttendanceCheckerService : Service() {
                         if(advertising)
                             stopAdvertising()
                         startAdvertising(codeHost)
-                        val lectureArr = result.get("lecture") as ArrayList<HashMap<String, Int> >
+                        val lectureArr = result.get("lecture") as ArrayList<HashMap<String, Long> >
                         if(!attendanceChecked){
                             val newDb = FirebaseFirestore.getInstance().collection("courses").document(courseId!!)
 
-                            lectureArr[lectureArr.size - 1][studentId!!] = lectureArr[lectureArr.size - 1]["Check_Count"]!!
-                            newDb.update("lecture", lectureArr)
-
-                            FirebaseFirestore.getInstance().collection("users").document(studentId!!).get().addOnSuccessListener { result ->
-                                val map = result.get("course") as HashMap<String, Int>
-                                val cnt = map[courseId]!! + 1
-                                FirebaseFirestore.getInstance().collection("users").document(studentId!!).update(
-                                    mapOf("course.$courseId" to cnt))
+                            if(lectureArr[lectureArr.size - 1][studentId!!] == null){
+                                lectureArr[lectureArr.size - 1][studentId!!] = lectureArr[lectureArr.size - 1]["Check_Count"]!!
+                                newDb.update("lecture", lectureArr)
+                                FirebaseFirestore.getInstance().collection("users").document(studentId!!).get().addOnSuccessListener { result ->
+                                    val map = result.get("course") as HashMap<String, Long>
+                                    val cnt = 1
+                                    FirebaseFirestore.getInstance().collection("users").document(studentId!!).update(
+                                        mapOf("course.$courseId" to cnt))
+                                }
+                                sendMessage()
                             }
-                            sendMessage()
+                            else if(lectureArr[lectureArr.size - 1][studentId!!] != lectureArr[lectureArr.size - 1]["Check_Count"]!!){
+                                lectureArr[lectureArr.size - 1][studentId!!] = lectureArr[lectureArr.size - 1]["Check_Count"]!!
+                                newDb.update("lecture", lectureArr)
+
+                                FirebaseFirestore.getInstance().collection("users").document(studentId!!).get().addOnSuccessListener { result ->
+                                    val map = result.get("course") as HashMap<String, Long>
+                                    val cnt = map[courseId]!! + 1
+                                    FirebaseFirestore.getInstance().collection("users").document(studentId!!).update(
+                                        mapOf("course.$courseId" to cnt))
+                                }
+                                sendMessage()
+                            }
                         }
                         attendanceChecked = false
                         if(scanning)
