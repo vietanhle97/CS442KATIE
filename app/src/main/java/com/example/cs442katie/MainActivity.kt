@@ -69,7 +69,9 @@ class MainActivity : AppCompatActivity() {
     lateinit var currentCourse : Course
     lateinit var serviceIntent : Intent
 
-
+    companion object {
+        var user: User = User()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -108,6 +110,8 @@ class MainActivity : AppCompatActivity() {
         activityMain.visibility = View.GONE
         toolbar.visibility = View.GONE
         db.collection("users").document(auth.uid!!).get().addOnSuccessListener { result ->
+            user = result.toObject(User::class.java)!!
+            Log.e("user info", "${user.fullName}")
             toolbar.title = result.get("fullName").toString()
             val headerView = navView.getHeaderView(0)
             val faceRef = FirebaseStorage.getInstance().reference.child(result.get("faceUri").toString())
@@ -116,7 +120,7 @@ class MainActivity : AppCompatActivity() {
             }
             headerView.findViewById<TextView>(R.id.user_name).text = result.get("fullName").toString()
             FirebaseMessaging.getInstance().subscribeToTopic("CS442")
-            val map = result.get("course") as HashMap<String, Int>
+            val map = result.get("course") as HashMap<String, Long>
             val userCourseList = map.keys
             val coursesDatabase = FirebaseFirestore.getInstance().collection("courses").get()
             coursesDatabase.addOnSuccessListener { documents ->

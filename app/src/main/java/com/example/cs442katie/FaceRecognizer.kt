@@ -1,9 +1,11 @@
 package com.example.cs442katie
 
+import android.app.AlertDialog
 import android.content.Context
 import android.content.res.AssetManager
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import android.media.ExifInterface
 import android.util.Log
 import android.util.Pair
 
@@ -23,12 +25,15 @@ class FaceRecognizer {
     companion object {
         const val DIM_IMG_SIZE_X = 112
         const val DIM_IMG_SIZE_Y = 112
+        private const val faceThreshold = 1.24f
 
         private var assetManager: AssetManager? = null
         private var appContext: Context? = null
 
         private var faceFeat: HashMap<String, FloatArray> = HashMap()
         private val mapKey = "Face Feature"
+
+        lateinit var faceDetector: com.google.android.gms.vision.face.FaceDetector
 
         // options for model interpreter
         private val tfliteOptions = Interpreter.Options()
@@ -51,7 +56,11 @@ class FaceRecognizer {
                 ex.printStackTrace()
                 Log.e("tflite", "Fail to load model.")
             }
-
+            faceDetector = com.google.android.gms.vision.face.FaceDetector.Builder(context).setTrackingEnabled(false).build()
+            if (!faceDetector.isOperational) {
+                AlertDialog.Builder(context).setMessage("Could not set up the face detector!").show()
+                return
+            }
         }
 
         fun addFaceBitmap(faceBitmap: Bitmap, name: String): FloatArray {
@@ -66,6 +75,19 @@ class FaceRecognizer {
             faceFeat[name] = normalize(feat[0])
             saveMap(appContext!!)
             return faceFeat[name]!!
+        }
+
+        fun compareFaceBitmap(faceBitmap: Bitmap, baseFaceFeat: FloatArray): Boolean {
+            val resizedBitmap = getResizedBitmap(faceBitmap, DIM_IMG_SIZE_X, DIM_IMG_SIZE_Y)
+            val curFeat = Array(1) { FloatArray(512) }
+            val startTime = System.nanoTime()
+            tflite!!.run(convertBitmapToByteBuffer(resizedBitmap), curFeat)
+            val endTime = System.nanoTime()
+            Log.e("inference done", (endTime - startTime).toString() + "")
+            curFeat[0] = normalize(curFeat[0])
+
+            val diff = getFaceDiff(curFeat[0], baseFaceFeat)
+            return diff < faceThreshold
         }
 
         fun recognizeFaceBitmap(faceBitmap: Bitmap): Pair<String, Float>? {
@@ -200,6 +222,44 @@ class FaceRecognizer {
         fun clearMap() {
             faceFeat.clear()
             saveMap(appContext!!)
+        }
+
+        fun modifyOrientation(bitmap: Bitmap, image_absolute_path: String): Bitmap {
+            var ei: ExifInterface? = null
+            try {
+                ei = ExifInterface(image_absolute_path)
+            } catch (e: Exception) {
+                return bitmap
+            }
+
+            val orientation =
+                ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+
+            when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> return rotate(bitmap, 90f)
+
+                ExifInterface.ORIENTATION_ROTATE_180 -> return rotate(bitmap, 180f)
+
+                ExifInterface.ORIENTATION_ROTATE_270 -> return rotate(bitmap, 270f)
+
+                ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> return flip(bitmap, true, false)
+
+                ExifInterface.ORIENTATION_FLIP_VERTICAL -> return flip(bitmap, false, true)
+
+                else -> return bitmap
+            }
+        }
+
+        private fun rotate(bitmap: Bitmap, degrees: Float): Bitmap {
+            val matrix = Matrix()
+            matrix.postRotate(degrees)
+            return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        }
+
+        private fun flip(bitmap: Bitmap, horizontal: Boolean, vertical: Boolean): Bitmap {
+            val matrix = Matrix()
+            matrix.preScale((if (horizontal) -1 else 1).toFloat(), (if (vertical) -1 else 1).toFloat())
+            return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
         }
     }
 }
