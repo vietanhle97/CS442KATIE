@@ -6,8 +6,7 @@
     android:layout_height="match_parent"
     android:background="@color/white"
     android:id="@+id/fragment_register_content"
-    android:focusable="true"
-    tools:context=".RegisterFragment">
+    android:focusable="true">
     <ImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
