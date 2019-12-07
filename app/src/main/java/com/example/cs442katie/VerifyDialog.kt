@@ -144,7 +144,7 @@ class VerifyDialog : DialogFragment() {
         when(requestCode){
             REQUEST_IMAGE_CAPTURE -> {
                 Log.e("request Code", requestCode.toString())
-                Log.e("result Code", resultCode.toString())
+                Log.e("resuinlt Code", resultCode.toString())
                 Log.e("NULL", (data?.extras?.get("data")).toString())
             }
 
@@ -174,59 +174,9 @@ class VerifyDialog : DialogFragment() {
     }
 
 
-
-//    private val receiver = object : BroadcastReceiver() {
-//        override fun onReceive(context: Context, intent: Intent) {
-//            when(intent.action) {
-//                BluetoothDevice.ACTION_FOUND -> {
-//                    bluetoothLeScanner.startScan(bleScanner)
-//
-//                }
-//            }
-//        }
-//    }
-//
-//    private val bleScanner = object : ScanCallback() {
-//        override fun onScanResult(callbackType: Int, result: ScanResult?) {
-//            super.onScanResult(callbackType, result)
-//            getServiceUUIDsList(result)
-//        }
-//    }
-//
-//    private fun getServiceUUIDsList(scanResult: ScanResult?) {
-//        val parcelUUIDs = scanResult?.scanRecord?.serviceUuids
-//        if(parcelUUIDs != null){
-//            val serviceList = arrayListOf<UUID>()
-//            for(i in 0 until parcelUUIDs.size){
-//                val serviceUUID = parcelUUIDs[i].uuid
-//                Log.e("UUID", serviceUUID.toString())
-//                db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
-//                    if(result.get("UUID") == serviceUUID.toString()){
-//                        bluetooth.setImageResource(R.drawable.ic_checked)
-//                        bluetooth.visibility = View.VISIBLE
-//                        bluetooth.isClickable = false
-//                        bluetoothProgress.visibility = View.GONE
-//                        bluetoothLeScanner.stopScan(bleScanner)
-//                        bluetoothAdapter.cancelDiscovery()
-//                        Log.e("Success", "SUCCESSS")
-//                    }
-//                }
-//            }
-//        }
-//    }
-//
-//    private val bluetoothLeScanner: BluetoothLeScanner
-//        get() {
-//            return bluetoothAdapter.bluetoothLeScanner
-//        }
-
     override fun onStop() {
         Log.e("close dialog", "true")
         Log.e("ScanDeviceActivity", "onStop()")
         super.onStop()
-//        if(isRegistered){
-//            bluetoothLeScanner.stopScan(bleScanner)
-//            bluetoothAdapter.cancelDiscovery()
-//        }
     }
 }

@@ -46,6 +46,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("courseId", data.get("courseId"))
             putExtra("courseName", data.get("title"))
+            putExtra("isAdmin", data.get("isAdmin"))
         }
 
         var pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT)
