@@ -22,6 +22,15 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility = 1.8
+        targetCompatibility = 1.8
+    }
+    // need this to store tflite models in assets
+    aaptOptions {
+        noCompress "tflite"
+        noCompress "lite"
+    }
 }
 
 dependencies {
@@ -48,6 +57,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-auth:19.1.0'
     implementation 'com.google.firebase:firebase-messaging:20.0.0'
     implementation 'com.google.firebase:firebase-firestore:21.1.1'
+    implementation 'org.tensorflow:tensorflow-lite:+'
     implementation 'com.firebaseui:firebase-ui-database:6.0.2'
     implementation 'com.firebaseui:firebase-ui-firestore:6.0.2'
     implementation 'com.firebaseui:firebase-ui-auth:6.0.2'
@@ -55,6 +65,8 @@ dependencies {
     implementation 'com.squareup.retrofit2:retrofit:2.6.1'
     implementation 'com.squareup.retrofit2:converter-gson:2.3.0'
     implementation 'com.android.volley:volley:1.1.1'
+    implementation 'com.google.android.gms:play-services-vision:19.0.0'
+
 }
 
 apply plugin: 'com.google.gms.google-services'  // Google Play services Gradle plugin

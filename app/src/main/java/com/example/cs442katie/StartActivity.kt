@@ -6,6 +6,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.AssetManager
 import android.graphics.ColorFilter
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -32,6 +33,7 @@ import java.util.*
 
 class StartActivity : AppCompatActivity() {
     private val PERMISSION_ID = 1
+    private val modelFileName = "vargfacenet.tflite"
     lateinit var auth : FirebaseAuth
     lateinit var signin : Button
     lateinit var signup : Button
@@ -59,6 +61,8 @@ class StartActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         val email = findViewById<EditText>(R.id.email)
         val password = findViewById<EditText>(R.id.password)
+
+        FaceRecognizer.setup(applicationContext, assets, modelFileName)
 
         if(FirebaseAuth.getInstance().currentUser != null) {
             signin_holder.visibility = View.GONE

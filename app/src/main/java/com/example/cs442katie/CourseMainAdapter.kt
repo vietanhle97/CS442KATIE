@@ -1,7 +1,10 @@
 package com.example.cs442katie
 
 import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.content.res.Resources
+import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.util.Log
 import android.view.LayoutInflater
@@ -12,14 +15,18 @@ import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.firestore.FirebaseFirestore
 import io.opencensus.resource.Resource
+import kotlinx.android.synthetic.main.course_main.*
 
 class CourseMainAdapter(
     val context: Context,
+    val intent : Intent,
     val courseList: List<Course>,
     val courseListener: (Course) -> Unit,
     val attendanceListener : (Course) -> Unit,
-    val uid : String): RecyclerView.Adapter<CourseMainAdapter.CourseMainViewHolder> () {
+    val uid : String,
+    val connection: ServiceConnection): RecyclerView.Adapter<CourseMainAdapter.CourseMainViewHolder> () {
 
 
 
@@ -40,7 +47,7 @@ class CourseMainAdapter(
             holder.course.setCardBackgroundColor(ContextCompat.getColor(context, R.color.member))
         }
 
-        holder.bind(course, courseListener, attendanceListener)
+        holder.bind(context, intent,connection, course, courseListener, attendanceListener)
     }
 
     class CourseMainViewHolder(view: View) : RecyclerView.ViewHolder(view){
@@ -51,7 +58,7 @@ class CourseMainAdapter(
         val courseInstructor = view.findViewById<TextView>(R.id.course_instructor)
         val admin = view.findViewById<TextView>(R.id.admin)
 
-        fun bind(courseMain: Course, courseListener: (Course) -> Unit, attendanceListener: (Course) -> Unit){
+        fun bind(context: Context, intent: Intent, connection: ServiceConnection, courseMain: Course, courseListener: (Course) -> Unit, attendanceListener: (Course) -> Unit){
             courseName.text = courseMain.courseName
             courseId.text = courseMain.courseId
             courseInstructor.text = courseMain.instructor
@@ -61,7 +68,21 @@ class CourseMainAdapter(
             })
 
             callAttendanceButton.setOnClickListener(View.OnClickListener {
-                attendanceListener(courseMain)
+
+                if(callAttendanceButton.text != "STOP CALLING"){
+                    attendanceListener(courseMain)
+                    callAttendanceButton.text = "STOP CALLING"
+                    callAttendanceButton.setBackgroundColor(Color.BLACK)
+                    callAttendanceButton.setTextColor(Color.WHITE)
+                } else {
+                    (context as MainActivity).serviceIsBound = false
+                    FirebaseFirestore.getInstance().collection("courses").document(courseMain.courseId).update("isCheckingAttendance", false)
+                    callAttendanceButton.text = "CALL ATTENDANCE"
+                    callAttendanceButton.setBackgroundColor(Color.WHITE)
+                    callAttendanceButton.setTextColor(Color.BLACK)
+                    context.stopService(intent)
+                    context.unbindService(connection)
+                }
             })
         }
     }

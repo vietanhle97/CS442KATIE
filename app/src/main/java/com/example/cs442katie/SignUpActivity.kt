@@ -42,19 +42,20 @@ class SignUpActivity : AppCompatActivity() {
         circular_progress  = findViewById(R.id.circular_progress)
         signup_holder = findViewById(R.id.sign_up_holder)
         registerButton = findViewById<Button>(R.id.next_button)
-        val fullName = findViewById<EditText>(R.id.full_name) as EditText
-        val studentId = findViewById<EditText>(R.id.student_id) as EditText
-        val email = findViewById<EditText>(R.id.email)
-        val password = findViewById<EditText>(R.id.password)
         registerButton.setOnClickListener(View.OnClickListener {
-            if (fullName.text.toString().isEmpty()
-                || email.text.toString().isEmpty()
-                || password.text.toString().isEmpty()
-                || studentId.text.toString().isEmpty()) {
+            val fullName = (findViewById<EditText>(R.id.full_name) as EditText).text.toString()
+            val studentId = (findViewById<EditText>(R.id.student_id) as EditText).text.toString()
+            val email = (findViewById<EditText>(R.id.email)).text.toString()
+            val password = (findViewById<EditText>(R.id.password)).text.toString()
+            Log.e("info", "$fullName $studentId $email $password")
+            if (fullName.isEmpty()
+                || email.isEmpty()
+                || password.isEmpty()
+                || studentId.isEmpty()) {
                 val message = Toast.makeText(this@SignUpActivity, "Please fill in all required field", Toast.LENGTH_SHORT)
                 message.show()
             } else{
-                signUp(fullName.text.toString(), studentId.text.toString(), email.text.toString(), password.text.toString())
+                signUp(fullName, studentId, email, password)
             }
         })
     }
@@ -71,18 +72,20 @@ class SignUpActivity : AppCompatActivity() {
                 if(!it.isEmpty){
                     Toast.makeText(this, "Your ID is already existed. You cannot create another account", Toast.LENGTH_SHORT).show()
                 } else {
-                    imm.hideSoftInputFromWindow(signup_holder.windowToken, 0)
-                    val fragment = RegisterFragment()
-                    val bundle = Bundle()
-                    bundle.putStringArrayList("user_info", arrayListOf(fullName, studentId, email, password))
-                    fragment.arguments = bundle
-                    val transaction = supportFragmentManager.beginTransaction()
-                    transaction.setCustomAnimations(R.anim.enter_from_right, R.anim.exit_to_right, R.anim.enter_from_right, R.anim.exit_to_right)
-                    transaction.replace(R.id.sign_up_activity_content, fragment).addToBackStack(null).commit()
+                    toRegisterPhotoActivity(fullName, studentId, email, password)
                 }
 
             }
         }
+    }
+
+    private fun toRegisterPhotoActivity(fullName : String, studentId : String, email : String, password : String) {
+        val intent = Intent(this, RegisterPhotoActivity::class.java)
+        intent.putExtra("fullName", fullName)
+        intent.putExtra("studentId", studentId)
+        intent.putExtra("email", email)
+        intent.putExtra("password", password)
+        startActivity(intent)
     }
 
     private fun isValidateEmail(email : String) : Boolean{
