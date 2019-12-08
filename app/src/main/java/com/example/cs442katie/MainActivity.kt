@@ -250,6 +250,7 @@ class MainActivity : AppCompatActivity() {
                     notification.put("to", "/topics/CS442")
                     notificationData.put("title", currentCourse.courseName)
                     notificationData.put("message", "Class is checking attendance")
+                    notificationData.put("studentId", user.studentId)
                     notificationData.put("courseId", currentCourse.courseId)
                     notification.put("data", notificationData)
                     Log.e("notification", notification.toString(2))

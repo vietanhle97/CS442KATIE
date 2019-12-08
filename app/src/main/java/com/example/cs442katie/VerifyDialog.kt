@@ -88,7 +88,7 @@ class VerifyDialog : DialogFragment() {
     };
 
     companion object {
-        fun newInstance(courseId : String, studentId : String) : VerifyDialog{
+        fun newInstance(courseId : String, studentId : String) : VerifyDialog {
             val dialog = VerifyDialog()
             val args = Bundle().apply {
                 courseId?.let { putString("courseId", it)
@@ -183,28 +183,13 @@ class VerifyDialog : DialogFragment() {
     }
 
     private fun detectFace(faceImg: Bitmap): Boolean {
-        var faceImg = faceImg
-        faceImg = faceImg.copy(Bitmap.Config.ARGB_8888, true)
-        val frame = Frame.Builder().setBitmap(faceImg).build()
-        val faces = FaceRecognizer.faceDetector.detect(frame)
-
-        if (faces.size() == 0) {
+        val capturedFace = FaceRecognizer.getFaceBitmap(faceImg)
+        if(capturedFace == null) {
             Toast.makeText(context!!, "No face found.", Toast.LENGTH_SHORT).show()
             return false
         }
-        val face = faces.valueAt(0)
-        var capturedFace =
-            Bitmap.createBitmap(face.width.toInt(), face.height.toInt(), Bitmap.Config.ARGB_8888)
-        val tempCanvas = Canvas(capturedFace)
-        tempCanvas.drawBitmap(faceImg, -face.position.x, -face.position.y, null)
-        capturedFace = FaceRecognizer.getResizedBitmap(capturedFace)
-
         val userFaceFeat = MainActivity.user.faceFeat.toFloatArray()
-        return FaceRecognizer.compareFaceBitmap(capturedFace, userFaceFeat)
-//        db.collection("users").document(auth.currentUser!!.uid).get().addOnSuccessListener {
-//            val userFaceFeat = it.get("faceFeat") as ArrayList<Float>
-//            return FaceRecognizer.compareFaceBitmap(capturedFace, studentId)
-//        }
+        return FaceRecognizer.compareFace(capturedFace, userFaceFeat)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -231,7 +216,7 @@ class VerifyDialog : DialogFragment() {
 
                     val serviceConnection = object : ServiceConnection{
                         override fun onServiceDisconnected(name: ComponentName?) {
-                            Log.e("Disonnected", "TRUE")
+                            Log.e("Disconnected", "TRUE")
                         }
 
                         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
@@ -239,7 +224,6 @@ class VerifyDialog : DialogFragment() {
                             val blueToothAttendanceCheckerService = binder.getService()
                             blueToothAttendanceCheckerService.startScan()
                         }
-
                     }
 
                     activity!!.applicationContext.bindService(newIntent, serviceConnection, Context.BIND_AUTO_CREATE)

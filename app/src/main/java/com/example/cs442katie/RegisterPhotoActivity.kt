@@ -17,6 +17,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.ProgressBar
+import android.widget.RelativeLayout
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.google.android.gms.vision.Frame
@@ -103,24 +105,19 @@ class RegisterPhotoActivity : AppCompatActivity() {
     }
 
     private fun detectFace(faceImg: Bitmap) {
-        var faceImg = faceImg
-        faceImg = faceImg.copy(Bitmap.Config.ARGB_8888, true)
-        val imageView = findViewById<ImageView>(R.id.please_take_picture)
-        val frame = Frame.Builder().setBitmap(faceImg).build()
-        val faces = FaceRecognizer.faceDetector.detect(frame)
+        findViewById<RelativeLayout>(R.id.register_template).visibility = View.INVISIBLE
+        findViewById<ProgressBar>(R.id.circular_progress).visibility = View.VISIBLE
 
-        if (faces.size() == 0) {
+        val capturedFace = FaceRecognizer.getFaceBitmap(faceImg)
+        if(capturedFace == null) {
             Toast.makeText(this, "No face found.", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
-        val face = faces.valueAt(0)
-        var capturedFace =
-            Bitmap.createBitmap(face.width.toInt(), face.height.toInt(), Bitmap.Config.ARGB_8888)
-        val tempCanvas = Canvas(capturedFace)
-        tempCanvas.drawBitmap(faceImg, -face.position.x, -face.position.y, null)
+
+        val imageView = findViewById<ImageView>(R.id.please_take_picture)
         imageView.setImageBitmap(capturedFace)
-        capturedFace = FaceRecognizer.getResizedBitmap(capturedFace)
+
         val baos = ByteArrayOutputStream()
         capturedFace.compress(Bitmap.CompressFormat.JPEG, 100, baos)
         val data = baos.toByteArray()
@@ -129,13 +126,14 @@ class RegisterPhotoActivity : AppCompatActivity() {
         var uploadTask = faceRef.putBytes(data)
         uploadTask.addOnSuccessListener {
             Log.e("success", "success")
-            var faceFeat = FaceRecognizer.addFaceBitmap(capturedFace, studentId)
+            var faceFeat = FaceRecognizer.getFaceFeat(capturedFace)
             auth = FirebaseAuth.getInstance()
             auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener {
                 if(it.isSuccessful) {
                     val user = auth.currentUser
                     val id = user!!.uid
                     val newUser = hashMapOf(
+                        "id" to id,
                         "fullName" to fullName,
                         "studentId" to studentId,
                         "email" to email,
@@ -149,7 +147,7 @@ class RegisterPhotoActivity : AppCompatActivity() {
                         db.collection("courses").document("CS442").update("student", FieldValue.arrayUnion(id))
                         val intent = Intent(this, MainActivity :: class.java)
                         startActivity(intent)
-                    }.addOnFailureListener{
+                    }.addOnFailureListener {
                         Log.e("dtb push fail", it.toString())
                     }
                 } else {
