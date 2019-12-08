@@ -76,30 +76,32 @@ class CourseActivity : AppCompatActivity() {
                     }
                 }
             }
-        } else{
-            db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
-                val studentList = result.get("student") as ArrayList<String>
-                val lectureList = result.get("lecture") as ArrayList<String>
-                val todayLecture = lectureList[lectureList.size - 1]
-                val todayAttendance = arrayListOf<Boolean>()
-                for (i in studentList){
-                    todayAttendance.add(todayLecture.contains(i))
-                }
+        }
+        db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
+            val studentList = result.get("student") as ArrayList<String>
+            val lectureList = result.get("lecture") as ArrayList<HashMap<String, Long>>
+            val todayLecture = lectureList[lectureList.size - 1]
+            val todayAttendance = HashMap<String, Boolean>()
+            for(i in todayLecture.keys)
+                Log.e("student", i)
+            for (i in studentList){
+                Log.e("student and keys", i.toString() + " " + (i in todayLecture.keys).toString())
+                todayAttendance[i] = (i in todayLecture.keys)
+            }
 
-                val userDb = FirebaseFirestore.getInstance().collection("users").get()
-                userDb.addOnSuccessListener {result ->
-                    val userList = result.filter {
-                        it.id in studentList
-                    }.map {
-                        it.toObject(User::class.java)
-                    }
-                    val courseMainAdapter = AttendanceListAdapter(this@CourseActivity, userList, courseId, todayAttendance)
-                    val recycler = findViewById<RecyclerView>(R.id.student_list)
-                    recycler.setHasFixedSize(true)
-
-                    recycler.layoutManager = LinearLayoutManager(this@CourseActivity)
-                    recycler.adapter = courseMainAdapter
+            val userDb = FirebaseFirestore.getInstance().collection("users").get()
+            userDb.addOnSuccessListener {result ->
+                val userList = result.filter {
+                    it.id in studentList
+                }.map {
+                    it.toObject(User::class.java)
                 }
+                val attendanceListAdapter = AttendanceListAdapter(this@CourseActivity, userList, courseId, todayAttendance)
+                val recycler = findViewById<RecyclerView>(R.id.student_list)
+                recycler.setHasFixedSize(true)
+
+                recycler.layoutManager = LinearLayoutManager(this@CourseActivity)
+                recycler.adapter = attendanceListAdapter
             }
         }
     }

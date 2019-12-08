@@ -18,18 +18,18 @@
         android:background="@drawable/text_view_border"
         />
     <TextView
-        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_toStartOf="@id/count_attendance"
         android:text="Yes"
         android:textColor="@color/dark_green"
         android:id="@+id/today_attendance"
         android:padding="10dp"
+        android:layout_width="60dp"
         android:background="@drawable/text_view_border"
         android:textSize="20dp"/>
     <TextView
         android:id="@+id/count_attendance"
-        android:layout_width="wrap_content"
+        android:layout_width="60dp"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:padding="10dp"

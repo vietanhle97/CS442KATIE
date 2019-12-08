@@ -5,6 +5,8 @@ import android.bluetooth.*
 import android.bluetooth.le.*
 import android.content.*
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.os.*
 import android.os.Bundle
 import android.os.IBinder
 import android.os.ParcelUuid
@@ -43,6 +45,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
 import io.grpc.internal.TimeProvider
 import kotlinx.android.synthetic.main.app_bar_main.*
+import kotlinx.android.synthetic.main.course_main.*
 import org.json.JSONException
 import org.json.JSONObject
 import java.nio.charset.Charset
@@ -50,12 +53,14 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
+import kotlin.concurrent.schedule
+import kotlin.concurrent.scheduleAtFixedRate
 
 private const val TAG = "KATIE"
 
 
 class MainActivity : AppCompatActivity() {
-    private val MY_UUID = UUID.randomUUID()
+    private var MY_UUID = UUID.randomUUID()
     private lateinit var bluetoothManager: BluetoothManager
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private val REQUEST_ENABLE_BT = 20
@@ -68,6 +73,7 @@ class MainActivity : AppCompatActivity() {
     private var isBroadcastReceiverRegistered = false
     lateinit var currentCourse : Course
     lateinit var serviceIntent : Intent
+    var serviceIsBound = false;
 
     companion object {
         var user: User = User()
@@ -150,28 +156,56 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+    fun loopChecking(){
+
+        Timer("schedule", true).schedule(10000) {
+            var stop = false;
+            FirebaseFirestore.getInstance().collection("courses").document(currentCourse.courseId).
+                get().addOnSuccessListener {
+                val checkingAttendance = it.get("isCheckingAttendance")
+                if(checkingAttendance == false)
+                    stop = true;
+            }
+            if(!stop){
+                MY_UUID = UUID.randomUUID()
+                serviceIntent.putExtra("attendanceCode", MY_UUID.toString())
+                if(serviceIsBound){
+                    unbindService(serviceConnection)
+                    var newIntent = Intent(this@MainActivity, BlueToothAttendanceCheckerService::class.java)
+                    stopService(newIntent)
+                }
+                if(!bluetoothAdapter.isEnabled){
+                    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                } else{
+                    this@MainActivity.bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
+                }
+            }
+        }
+    }
+
     private val serviceConnection = object : ServiceConnection{
         override fun onServiceDisconnected(name: ComponentName?) {
-            Log.e("Disonnected", "TRUE")
+            serviceIsBound = false
         }
 
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             val binder = binder as BlueToothAttendanceCheckerService.LocalBinder
             val blueToothAttendanceCheckerService = binder.getService()
+            serviceIsBound = true;
+
             blueToothAttendanceCheckerService.startAdvertising(MY_UUID.toString())
+            loopChecking();
         }
 
     }
 
     private fun sendNotification(requestQueue: RequestQueue, notification: JSONObject) {
-        Log.e("TAG", "sendNotification")
         val jsonObjectRequest = object : JsonObjectRequest(FCM_API, notification,
             Response.Listener<JSONObject> { response ->
                 // Log.i("TAG", "onResponse: $response")
             },
             Response.ErrorListener {
                 Toast.makeText(applicationContext, "Request error", Toast.LENGTH_LONG).show()
-                Log.e("TAG", "onErrorResponse: Didn't work")
             }) {
 
             override fun getHeaders(): Map<String, String> {
@@ -190,7 +224,6 @@ class MainActivity : AppCompatActivity() {
         intent.putExtra("courseId", course.courseId)
         intent.putExtra("courseName", course.courseName)
         intent.putExtra("isAdmin", course.admin == auth.currentUser!!.uid)
-        Log.e("course", course.toString())
         startActivity(intent)
     }
 
@@ -200,20 +233,20 @@ class MainActivity : AppCompatActivity() {
         serviceIntent.putExtra("courseId", course.courseId)
         serviceIntent.putExtra("studentId", auth.currentUser?.uid)
         serviceIntent.putExtra("attendanceCode", MY_UUID.toString())
-        Log.e("UUID", MY_UUID.toString())
+        serviceIntent.putExtra("hostId", course.admin)
         if(bluetoothAdapter.isEnabled){
             val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
         } else{
             val discoverableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
-                putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+                putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 60)
                 putExtra("Hello", "Viet Anh")
 
             }
-            discoverableIntent.action = Intent.ACTION_SEND
-            setResult(300, discoverableIntent)
+            setResult(60, discoverableIntent)
             startActivityForResult(intent, REQUEST_DISCOVERABLE_BL)
         }
+
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
@@ -228,18 +261,22 @@ class MainActivity : AppCompatActivity() {
             } else {
                 bluetoothAdapter.enable()
                 val discoverableIntent: Intent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
-                    putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+                    putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 60)
                 }
                 discoverableIntent.putExtra("Hello", "Viet Anh")
-                setResult(300, discoverableIntent)
+                setResult(60, discoverableIntent)
                 startActivityForResult(discoverableIntent, REQUEST_DISCOVERABLE_BL)
             }
         } else if(requestCode == REQUEST_DISCOVERABLE_BL) {
             Log.e("resultCode", resultCode.toString())
 
-            if(resultCode != 300) {
-                Toast.makeText(this, "Please turn on bluetooth for 5 minutes to check attendance", Toast.LENGTH_SHORT).show()
-            } else{
+            if(resultCode != 60) {
+                Toast.makeText(
+                    this,
+                    "Please turn on bluetooth for 60 secs to check attendance",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }else{
                 this.bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
                 val requestQueue: RequestQueue by lazy {
                     Volley.newRequestQueue(this@MainActivity)
@@ -252,6 +289,7 @@ class MainActivity : AppCompatActivity() {
                     notificationData.put("message", "Class is checking attendance")
                     notificationData.put("studentId", user.studentId)
                     notificationData.put("courseId", currentCourse.courseId)
+                    notificationData.put("isAdmin", currentCourse.admin == auth.currentUser!!.uid)
                     notification.put("data", notificationData)
                     Log.e("notification", notification.toString(2))
                 } catch (e: JSONException) {
@@ -275,7 +313,6 @@ class MainActivity : AppCompatActivity() {
             Log.d("sign out", "Signed out")
             auth.signOut()
             val intent = Intent(this@MainActivity, StartActivity :: class.java)
-            startActivity(intent)
             finish()
             return true
         }
@@ -294,11 +331,13 @@ class MainActivity : AppCompatActivity() {
         return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
     }
 
-    private fun onLocation(){
-    }
 
     override fun onDestroy() {
         super.onDestroy()
+        if(serviceIsBound){
+            unbindService(serviceConnection);
+            serviceIsBound = false;
+        }
         if(bluetoothAdapter.isEnabled){
             bluetoothAdapter.disable()
             Log.e("disable", "disabled")
