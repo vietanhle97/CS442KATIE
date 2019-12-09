@@ -17,6 +17,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.ProgressBar
+import android.widget.RelativeLayout
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.google.android.gms.vision.Frame
@@ -103,40 +105,28 @@ class RegisterPhotoActivity : AppCompatActivity() {
     }
 
     private fun detectFace(faceImg: Bitmap) {
-        var faceImg = faceImg
-        faceImg = faceImg.copy(Bitmap.Config.ARGB_8888, true)
-        val imageView = findViewById<ImageView>(R.id.please_take_picture)
-        val faceDetector = FaceDetector.Builder(this).setTrackingEnabled(false).build()
-        if (!faceDetector.isOperational) {
-            AlertDialog.Builder(this).setMessage("Could not set up the face detector!").show()
-            return
-        }
-        val frame = Frame.Builder().setBitmap(faceImg).build()
-        val faces = faceDetector.detect(frame)
+        findViewById<RelativeLayout>(R.id.register_template).visibility = View.INVISIBLE
+        findViewById<ProgressBar>(R.id.circular_progress).visibility = View.VISIBLE
 
-        if (faces.size() == 0) {
+        val capturedFace = FaceRecognizer.getFaceBitmap(faceImg)
+        if(capturedFace == null) {
             Toast.makeText(this, "No face found.", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
-        val face = faces.valueAt(0)
-        var capturedFace =
-            Bitmap.createBitmap(face.width.toInt(), face.height.toInt(), Bitmap.Config.ARGB_8888)
-        val tempCanvas = Canvas(capturedFace)
-        tempCanvas.drawBitmap(faceImg, -face.position.x, -face.position.y, null)
+
+        val imageView = findViewById<ImageView>(R.id.please_take_picture)
         imageView.setImageBitmap(capturedFace)
-        capturedFace = FaceRecognizer.getResizedBitmap(capturedFace)
+
         val baos = ByteArrayOutputStream()
         capturedFace.compress(Bitmap.CompressFormat.JPEG, 100, baos)
         val data = baos.toByteArray()
 
         val faceRef = mStorageRef.child("$studentId.jpg")
         var uploadTask = faceRef.putBytes(data)
-        uploadTask.addOnFailureListener {
-            // Handle unsuccessful uploads
-            Log.e("FireStorage", "Upload failure")
-        }.addOnSuccessListener {
-            var faceFeat = FaceRecognizer.addFaceBitmap(capturedFace, studentId)
+        uploadTask.addOnSuccessListener {
+            Log.e("success", "success")
+            var faceFeat = FaceRecognizer.getFaceFeat(capturedFace)
             auth = FirebaseAuth.getInstance()
             auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener {
                 if(it.isSuccessful) {
@@ -147,15 +137,19 @@ class RegisterPhotoActivity : AppCompatActivity() {
                         "fullName" to fullName,
                         "studentId" to studentId,
                         "email" to email,
-                        "course" to hashMapOf("CS442" to 0, "CS489" to 0),
+                        "course" to hashMapOf("CS442" to 0, "CS489" to 0, "CS459" to 0),
                         "faceUri" to faceRef.path,
-                        "faceFeat" to faceFeat
+                        "faceFeat" to faceFeat.toCollection(ArrayList())
                     )
                     db.collection("users").document(id).set(newUser).addOnSuccessListener {
+                        Log.e("success", "here")
                         // We auto enroll every students to the CS442 course.
                         db.collection("courses").document("CS442").update("student", FieldValue.arrayUnion(id))
-                        val intent = Intent(applicationContext, MainActivity :: class.java)
+                        db.collection("courses").document("CS489").update("student", FieldValue.arrayUnion(id))
+                        val intent = Intent(this, MainActivity :: class.java)
                         startActivity(intent)
+                    }.addOnFailureListener {
+                        Log.e("dtb push fail", it.toString())
                     }
                 } else {
                     val message = Toast.makeText(applicationContext, "Register Failed. Please try again", Toast.LENGTH_SHORT)
@@ -165,6 +159,8 @@ class RegisterPhotoActivity : AppCompatActivity() {
 //                        imm.toggleSoftInput(InputMethodManager.SHOW_FORCED,0)
                 }
             }
+        }.addOnFailureListener {
+            Log.e("upload fail", it.toString())
         }
     }
 
@@ -176,52 +172,13 @@ class RegisterPhotoActivity : AppCompatActivity() {
                 Log.e("result Code", resultCode.toString())
                 Log.e("NULL", (data?.extras?.get("data")).toString())
                 if(currentPhotoPath != null) {
-
                     var capturedImg = BitmapFactory.decodeFile(currentPhotoPath)
-                    capturedImg = modifyOrientation(capturedImg, currentPhotoPath)
+                    capturedImg = FaceRecognizer.modifyOrientation(capturedImg, currentPhotoPath)
                     Log.e("img", "okayyy")
                     detectFace(capturedImg)
                 }
 
             }
         }
-    }
-
-    private fun modifyOrientation(bitmap: Bitmap, image_absolute_path: String): Bitmap {
-        var ei: ExifInterface? = null
-        try {
-            ei = ExifInterface(image_absolute_path)
-        } catch (e: Exception) {
-            return bitmap
-        }
-
-        val orientation =
-            ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-
-        when (orientation) {
-            ExifInterface.ORIENTATION_ROTATE_90 -> return rotate(bitmap, 90f)
-
-            ExifInterface.ORIENTATION_ROTATE_180 -> return rotate(bitmap, 180f)
-
-            ExifInterface.ORIENTATION_ROTATE_270 -> return rotate(bitmap, 270f)
-
-            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> return flip(bitmap, true, false)
-
-            ExifInterface.ORIENTATION_FLIP_VERTICAL -> return flip(bitmap, false, true)
-
-            else -> return bitmap
-        }
-    }
-
-    private fun rotate(bitmap: Bitmap, degrees: Float): Bitmap {
-        val matrix = Matrix()
-        matrix.postRotate(degrees)
-        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-    }
-
-    private fun flip(bitmap: Bitmap, horizontal: Boolean, vertical: Boolean): Bitmap {
-        val matrix = Matrix()
-        matrix.preScale((if (horizontal) -1 else 1).toFloat(), (if (vertical) -1 else 1).toFloat())
-        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 }

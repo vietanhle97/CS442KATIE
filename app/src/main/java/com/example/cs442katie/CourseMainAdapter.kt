@@ -15,9 +15,14 @@ import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.MetadataChanges
 import io.opencensus.resource.Resource
 import kotlinx.android.synthetic.main.course_main.*
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 class CourseMainAdapter(
     val context: Context,
@@ -57,6 +62,7 @@ class CourseMainAdapter(
         val courseId =  view.findViewById<TextView>(R.id.course_id)
         val courseInstructor = view.findViewById<TextView>(R.id.course_instructor)
         val admin = view.findViewById<TextView>(R.id.admin)
+        val classEndButton = view.findViewById<Button>(R.id.class_end_button)
 
         fun bind(context: Context, intent: Intent, connection: ServiceConnection, courseMain: Course, courseListener: (Course) -> Unit, attendanceListener: (Course) -> Unit){
             courseName.text = courseMain.courseName
@@ -67,19 +73,60 @@ class CourseMainAdapter(
                 courseListener(courseMain)
             })
 
+            classEndButton.setOnClickListener(View.OnClickListener {
+                FirebaseFirestore.getInstance().collection("courses").document(courseMain.courseId).get().addOnSuccessListener {
+                    val lectureList = it.get("lecture") as ArrayList<HashMap<String, Long>>
+                    val studentList = it.get("student") as ArrayList<String>
+                    if(lectureList.isNotEmpty()){
+                        val currentLecture = lectureList[lectureList.size - 1]
+                        for (i in studentList){
+                            if(i in currentLecture.keys && currentLecture[i] as Long > currentLecture["Check_Count"] as Long - 5){
+                                FirebaseFirestore.getInstance().collection("users").document(i).update("course.${courseMain.courseId}", FieldValue.increment(1))
+
+                            }
+                        }
+                    }
+
+                }
+                FirebaseFirestore.getInstance().collection("courses").document(courseMain.courseId).update("isClassEnd", true)
+                classEndButton.visibility = View.GONE
+                if(callAttendanceButton.text == "STOP CALLING"){
+                    (context as MainActivity).serviceIsBound = false
+                    callAttendanceButton.text = "CALL ATTENDANCE"
+                    callAttendanceButton.setBackgroundColor(Color.WHITE)
+                    callAttendanceButton.setTextColor(Color.BLACK)
+                    FirebaseFirestore.getInstance().collection("courses").document(courseMain.courseId).update("isCheckingAttendance", false)
+                    context.stopService(intent)
+                    context.unbindService(connection)
+                }
+            })
+
             callAttendanceButton.setOnClickListener(View.OnClickListener {
 
                 if(callAttendanceButton.text != "STOP CALLING"){
                     attendanceListener(courseMain)
-                    callAttendanceButton.text = "STOP CALLING"
-                    callAttendanceButton.setBackgroundColor(Color.BLACK)
-                    callAttendanceButton.setTextColor(Color.WHITE)
+                    FirebaseFirestore.getInstance().collection("courses").document(courseMain.courseId).addSnapshotListener(MetadataChanges.INCLUDE){
+                            documentSnapshot, firebaseFirestoreException ->
+                        if(documentSnapshot!!.get("isCheckingAttendance") == true){
+                            classEndButton.visibility = View.VISIBLE
+                            callAttendanceButton.text = "STOP CALLING"
+                            callAttendanceButton.setBackgroundColor(Color.BLACK)
+                            callAttendanceButton.setTextColor(Color.WHITE)
+                        } else {
+                            callAttendanceButton.text = "CALL ATTENDANCE"
+                            callAttendanceButton.setBackgroundColor(Color.WHITE)
+                            callAttendanceButton.setTextColor(Color.BLACK)
+                        }
+                        if(documentSnapshot!!.get("isClassEnd") == true){
+                            classEndButton.visibility = View.GONE
+                        }
+                    }
                 } else {
                     (context as MainActivity).serviceIsBound = false
-                    FirebaseFirestore.getInstance().collection("courses").document(courseMain.courseId).update("isCheckingAttendance", false)
                     callAttendanceButton.text = "CALL ATTENDANCE"
                     callAttendanceButton.setBackgroundColor(Color.WHITE)
                     callAttendanceButton.setTextColor(Color.BLACK)
+                    FirebaseFirestore.getInstance().collection("courses").document(courseMain.courseId).update("isCheckingAttendance", false)
                     context.stopService(intent)
                     context.unbindService(connection)
                 }

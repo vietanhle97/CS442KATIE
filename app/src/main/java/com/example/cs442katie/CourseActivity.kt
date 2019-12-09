@@ -36,6 +36,7 @@ import com.google.android.gms.tasks.Continuation
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.UploadTask
 import kotlinx.android.synthetic.main.fragment_verify_dialog.*
@@ -80,15 +81,18 @@ class CourseActivity : AppCompatActivity() {
         db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
             val studentList = result.get("student") as ArrayList<String>
             val lectureList = result.get("lecture") as ArrayList<HashMap<String, Long>>
-            val todayLecture = lectureList[lectureList.size - 1]
             val todayAttendance = HashMap<String, Boolean>()
-            for(i in todayLecture.keys)
-                Log.e("student", i)
-            for (i in studentList){
-                Log.e("student and keys", i.toString() + " " + (i in todayLecture.keys).toString())
-                todayAttendance[i] = (i in todayLecture.keys)
+            if(lectureList.isNotEmpty()){
+                val todayLecture = lectureList[lectureList.size - 1]
+                for (i in studentList){
+                    Log.e("student and keys", i + " " + (i in todayLecture.keys).toString())
+                    todayAttendance[i] = (i in todayLecture.keys)
+                }
+            } else {
+                for (i in studentList){
+                    todayAttendance[i] = false
+                }
             }
-
             val userDb = FirebaseFirestore.getInstance().collection("users").get()
             userDb.addOnSuccessListener {result ->
                 val userList = result.filter {
@@ -96,13 +100,20 @@ class CourseActivity : AppCompatActivity() {
                 }.map {
                     it.toObject(User::class.java)
                 }
-                val attendanceListAdapter = AttendanceListAdapter(this@CourseActivity, userList, courseId, todayAttendance)
+                val attendanceListAdapter = AttendanceListAdapter(this@CourseActivity, userList, courseId, todayAttendance, isAdmin!!)
                 val recycler = findViewById<RecyclerView>(R.id.student_list)
                 recycler.setHasFixedSize(true)
 
                 recycler.layoutManager = LinearLayoutManager(this@CourseActivity)
                 recycler.adapter = attendanceListAdapter
             }
+
+        }
+
+
+        db.collection("courses").document(courseId).addSnapshotListener(MetadataChanges.INCLUDE){
+            documentSnapshot, firebaseFirestoreException ->
+            Log.e("real time?", "REAL TIME")
         }
     }
 }

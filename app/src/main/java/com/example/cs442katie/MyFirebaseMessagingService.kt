@@ -44,6 +44,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         Log.e(TAG, data.get("courseId"))
         val intent = Intent(this, CourseActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("studentId", data.get("studentId"))
             putExtra("courseId", data.get("courseId"))
             putExtra("courseName", data.get("title"))
             putExtra("isAdmin", data.get("isAdmin"))

@@ -70,7 +70,6 @@ class MainActivity : AppCompatActivity() {
     lateinit var auth : FirebaseAuth
     lateinit var db : FirebaseFirestore
     private val FCM_API = "https://fcm.googleapis.com/fcm/send"
-    private var filter : IntentFilter? = null
     private var isBroadcastReceiverRegistered = false
     lateinit var currentCourse : Course
     lateinit var serviceIntent : Intent
@@ -90,6 +89,9 @@ class MainActivity : AppCompatActivity() {
             blueToothAttendanceCheckerService.startAdvertising(MY_UUID.toString())
             loopChecking();
         }
+    }
+    companion object {
+        var user: User = User()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -121,6 +123,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_tools, R.id.nav_share, R.id.nav_send
             ), drawerLayout
         )
+
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
         val toggle = ActionBarDrawerToggle(this@MainActivity, drawerLayout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)
@@ -130,15 +133,17 @@ class MainActivity : AppCompatActivity() {
         toolbar.visibility = View.GONE
         serviceIntent = Intent(this@MainActivity, BlueToothAttendanceCheckerService::class.java)
         db.collection("users").document(auth.uid!!).get().addOnSuccessListener { result ->
+            user = result.toObject(User::class.java)!!
+            Log.e("user info", "${user.fullName}")
             toolbar.title = result.get("fullName").toString()
             val headerView = navView.getHeaderView(0)
-//            val faceRef = FirebaseStorage.getInstance().reference.child(result.get("faceUri").toString())
-//            faceRef.downloadUrl.addOnSuccessListener {
-//                Glide.with(this).load(it).into(headerView.findViewById(R.id.main_user_avatar))
-//            }
-//            headerView.findViewById<TextView>(R.id.user_name).text = result.get("fullName").toString()
+            val faceRef = FirebaseStorage.getInstance().reference.child(result.get("faceUri").toString())
+            faceRef.downloadUrl.addOnSuccessListener {
+                Glide.with(this).load(it).into(headerView.findViewById(R.id.main_user_avatar))
+            }
+            headerView.findViewById<TextView>(R.id.user_name).text = result.get("fullName").toString()
             FirebaseMessaging.getInstance().subscribeToTopic("CS442")
-            val map = result.get("course") as HashMap<String, Int>
+            val map = result.get("course") as HashMap<String, Long>
             val userCourseList = map.keys
             val coursesDatabase = FirebaseFirestore.getInstance().collection("courses").get()
             coursesDatabase.addOnSuccessListener { documents ->
@@ -185,8 +190,9 @@ class MainActivity : AppCompatActivity() {
                     unbindService(serviceConnection)
                     stopService(serviceIntent)
                     this@MainActivity.bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
+                } else{
+                    stopService(serviceIntent)
                 }
-
             }
         }
     }
@@ -278,6 +284,7 @@ class MainActivity : AppCompatActivity() {
                     notification.put("to", "/topics/CS442")
                     notificationData.put("title", currentCourse.courseName)
                     notificationData.put("message", "Class is checking attendance")
+                    notificationData.put("studentId", user.studentId)
                     notificationData.put("courseId", currentCourse.courseId)
                     notificationData.put("isAdmin", currentCourse.admin == auth.currentUser!!.uid)
                     notification.put("data", notificationData)
@@ -287,6 +294,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 sendNotification(requestQueue, notification)
                 db.collection("courses").document(currentCourse.courseId).update("isCheckingAttendance", true)
+                db.collection("courses").document(currentCourse.courseId).update("isClassEnd", false)
 
             }
         }
@@ -302,7 +310,8 @@ class MainActivity : AppCompatActivity() {
         if(item.itemId == R.id.action_settings) {
             Log.d("sign out", "Signed out")
             auth.signOut()
-            val intent = Intent(this@MainActivity, StartActivity :: class.java)
+            val intent = Intent(this@MainActivity, StartActivity::class.java)
+            startActivity(intent)
             finish()
             return true
         }

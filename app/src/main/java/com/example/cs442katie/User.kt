@@ -5,6 +5,7 @@ data class User(
     var email : String = "",
     var fullName : String = "",
     var studentId : String = "",
+    var faceFeat : ArrayList<Float> = ArrayList(),
     var id : String = "",
-    var faceFeat : ArrayList<Float> = ArrayList()
+    var faceUri: String = ""
 )

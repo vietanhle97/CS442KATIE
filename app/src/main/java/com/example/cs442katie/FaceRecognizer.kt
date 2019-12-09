@@ -1,11 +1,16 @@
 package com.example.cs442katie
 
+import android.app.AlertDialog
 import android.content.Context
 import android.content.res.AssetManager
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Matrix
+import android.media.ExifInterface
 import android.util.Log
 import android.util.Pair
+import android.widget.Toast
+import com.google.android.gms.vision.Frame
 
 import org.json.JSONArray
 import org.json.JSONObject
@@ -23,12 +28,12 @@ class FaceRecognizer {
     companion object {
         const val DIM_IMG_SIZE_X = 112
         const val DIM_IMG_SIZE_Y = 112
+        private const val faceThreshold = 1.24f
 
         private var assetManager: AssetManager? = null
         private var appContext: Context? = null
 
-        private var faceFeat: HashMap<String, FloatArray> = HashMap()
-        private val mapKey = "Face Feature"
+        lateinit var faceDetector: com.google.android.gms.vision.face.FaceDetector
 
         // options for model interpreter
         private val tfliteOptions = Interpreter.Options()
@@ -46,29 +51,50 @@ class FaceRecognizer {
                 tflite = Interpreter(loadModelFile(modelFileName), tfliteOptions)
                 modelName = modelFileName
                 Log.e("tflite", "Model loaded.")
-                loadMap(context)
             } catch (ex: Exception) {
                 ex.printStackTrace()
                 Log.e("tflite", "Fail to load model.")
             }
-
+            faceDetector = com.google.android.gms.vision.face.FaceDetector.Builder(context).setTrackingEnabled(false).build()
+            if (!faceDetector.isOperational) {
+                AlertDialog.Builder(context).setMessage("Could not set up the face detector!").show()
+                return
+            }
         }
 
-        fun addFaceBitmap(faceBitmap: Bitmap, name: String): FloatArray {
+        fun getFaceBitmap(frameImg: Bitmap): Bitmap? {
+            val frame = Frame.Builder().setBitmap(frameImg).build()
+            val faces = faceDetector.detect(frame)
+
+            if (faces.size() == 0) return null
+            val face = faces.valueAt(0)
+            val faceCenter = floatArrayOf(face.position.x + face.width/2, face.position.y + face.height/2)
+
+            val rotatedFaceImg = Bitmap.createBitmap(frameImg.width, frameImg.height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(rotatedFaceImg)
+            val rotateMatrix = Matrix()
+            rotateMatrix.setTranslate(-faceCenter[0], -faceCenter[1])
+            rotateMatrix.postRotate(face.eulerZ)
+            rotateMatrix.postTranslate(faceCenter[0], faceCenter[1])
+            canvas.drawBitmap(frameImg, rotateMatrix, null)
+
+            var capturedFace =
+                Bitmap.createBitmap(face.width.toInt(), face.height.toInt(), Bitmap.Config.ARGB_8888)
+            val tempCanvas = Canvas(capturedFace)
+            tempCanvas.drawBitmap(rotatedFaceImg, -face.position.x, -face.position.y, null)
+            capturedFace = getResizedBitmap(capturedFace)
+            return capturedFace
+        }
+
+        fun getFaceFeat(faceBitmap: Bitmap): FloatArray {
             val resizedBitmap = getResizedBitmap(faceBitmap, DIM_IMG_SIZE_X, DIM_IMG_SIZE_Y)
             val feat = Array(1) { FloatArray(512) }
-            val startTime = System.nanoTime()
             tflite!!.run(convertBitmapToByteBuffer(resizedBitmap), feat)
             val endTime = System.nanoTime()
-            Log.e("inference done", (endTime - startTime).toString() + "")
-            Log.e("tflite", "face added for $name")
-            // for(int i=0; i<feat[0].length; i++) Log.e("arr: ", feat[0][i] + "");
-            faceFeat[name] = normalize(feat[0])
-            saveMap(appContext!!)
-            return faceFeat[name]!!
+            return normalize(feat[0])
         }
 
-        fun recognizeFaceBitmap(faceBitmap: Bitmap): Pair<String, Float>? {
+        fun compareFace(faceBitmap: Bitmap, baseFaceFeat: FloatArray): Boolean {
             val resizedBitmap = getResizedBitmap(faceBitmap, DIM_IMG_SIZE_X, DIM_IMG_SIZE_Y)
             val curFeat = Array(1) { FloatArray(512) }
             val startTime = System.nanoTime()
@@ -77,12 +103,8 @@ class FaceRecognizer {
             Log.e("inference done", (endTime - startTime).toString() + "")
             curFeat[0] = normalize(curFeat[0])
 
-            var best: Pair<String, Float>? = null
-            for ((key, value) in faceFeat) {
-                val diff = getFaceDiff(curFeat[0], value)
-                if (best == null || best.second > diff) best = Pair.create(key, diff)
-            }
-            return best
+            val diff = getFaceDiff(curFeat[0], baseFaceFeat)
+            return diff < faceThreshold
         }
 
         private fun getFaceDiff(faceFeat1: FloatArray, faceFeat2: FloatArray): Float {
@@ -144,62 +166,42 @@ class FaceRecognizer {
             return imgData
         }
 
-        /**
-         * Save and get HashMap in SharedPreference
-         */
-
-        fun saveMap(context: Context) {
-            val pSharedPref = context.getSharedPreferences(
-                "MyVariables",
-                Context.MODE_PRIVATE
-            )
-            if (pSharedPref != null) {
-                val jsonObject = JSONObject(faceFeat as Map<*, *>)
-                val jsonString = jsonObject.toString()
-                val editor = pSharedPref.edit()
-                editor.remove(mapKey).apply()
-                editor.putString(mapKey, jsonString)
-                editor.commit()
-                Log.e("tflite", "face feat saved")
-            }
-        }
-
-        fun loadMap(context: Context) {
-            val pSharedPref = context.getSharedPreferences(
-                "MyVariables",
-                Context.MODE_PRIVATE
-            )
+        fun modifyOrientation(bitmap: Bitmap, image_absolute_path: String): Bitmap {
+            var ei: ExifInterface? = null
             try {
-                faceFeat = HashMap()
-                if (pSharedPref != null) {
-                    val jsonString =
-                        pSharedPref.getString(mapKey, JSONObject().toString()) ?: return
-                    val jsonObject = JSONObject(jsonString)
-                    val keysItr = jsonObject.keys()
-                    while (keysItr.hasNext()) {
-                        val key = keysItr.next()
-                        faceFeat[key] = JSONArrayToFloatArray(jsonObject.getJSONArray(key))
-                    }
-                }
+                ei = ExifInterface(image_absolute_path)
             } catch (e: Exception) {
-                e.printStackTrace()
+                return bitmap
             }
 
-        }
+            val orientation =
+                ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
 
-        private fun JSONArrayToFloatArray(arr: JSONArray): FloatArray {
-            val ans = FloatArray(arr.length())
-            try {
-                for (i in 0 until arr.length()) ans[i] = arr.getDouble(i).toFloat()
-            } catch (e: Exception) {
+            when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> return rotate(bitmap, 90f)
+
+                ExifInterface.ORIENTATION_ROTATE_180 -> return rotate(bitmap, 180f)
+
+                ExifInterface.ORIENTATION_ROTATE_270 -> return rotate(bitmap, 270f)
+
+                ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> return flip(bitmap, true, false)
+
+                ExifInterface.ORIENTATION_FLIP_VERTICAL -> return flip(bitmap, false, true)
+
+                else -> return bitmap
             }
-
-            return ans
         }
 
-        fun clearMap() {
-            faceFeat.clear()
-            saveMap(appContext!!)
+        private fun rotate(bitmap: Bitmap, degrees: Float): Bitmap {
+            val matrix = Matrix()
+            matrix.postRotate(degrees)
+            return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        }
+
+        private fun flip(bitmap: Bitmap, horizontal: Boolean, vertical: Boolean): Bitmap {
+            val matrix = Matrix()
+            matrix.preScale((if (horizontal) -1 else 1).toFloat(), (if (vertical) -1 else 1).toFloat())
+            return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
         }
     }
 }
