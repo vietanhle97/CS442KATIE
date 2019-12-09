@@ -11,7 +11,7 @@ android {
     defaultConfig {
         applicationId "com.example.cs442katie"
         minSdkVersion 24
-        targetSdkVersion 27
+        targetSdkVersion 28
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"

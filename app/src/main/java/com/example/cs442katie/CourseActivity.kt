@@ -80,10 +80,10 @@ class CourseActivity : AppCompatActivity() {
         }
         db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
             val studentList = result.get("student") as ArrayList<String>
-            val lectureList = result.get("lecture") as ArrayList<HashMap<String, Long>>
+            val lectureList = result.get("lecture") as HashMap<String, Long>
             val todayAttendance = HashMap<String, Boolean>()
             if(lectureList.isNotEmpty()){
-                val todayLecture = lectureList[lectureList.size - 1]
+                val todayLecture = lectureList
                 for (i in studentList){
                     Log.e("student and keys", i + " " + (i in todayLecture.keys).toString())
                     todayAttendance[i] = (i in todayLecture.keys)

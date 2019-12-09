@@ -28,7 +28,7 @@ class FaceRecognizer {
     companion object {
         const val DIM_IMG_SIZE_X = 112
         const val DIM_IMG_SIZE_Y = 112
-        private const val faceThreshold = 1.24f
+        private const val faceThreshold = 1.05f
 
         private var assetManager: AssetManager? = null
         private var appContext: Context? = null
@@ -103,6 +103,7 @@ class FaceRecognizer {
             curFeat[0] = normalize(curFeat[0])
 
             val diff = getFaceDiff(curFeat[0], baseFaceFeat)
+            Log.e("Face difference", diff.toString())
             return diff < faceThreshold
         }
 

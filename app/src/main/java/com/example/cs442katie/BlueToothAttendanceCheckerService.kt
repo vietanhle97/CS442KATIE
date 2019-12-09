@@ -122,29 +122,26 @@ class BlueToothAttendanceCheckerService : Service() {
             Log.e("asda","advertising")
             val newDb = FirebaseFirestore.getInstance().collection("courses").document(courseIdHost!!)
             newDb.get().addOnSuccessListener {
-                val lectureArr = it.get("lecture") as ArrayList<HashMap<String, Long> >
+                var lectureArr = it.get("lecture") as HashMap<String, Long>?
                 val year = Calendar.getInstance().get(Calendar.YEAR).toLong()
                 val month = Calendar.getInstance().get(Calendar.MONTH).toLong()
                 val day = Calendar.getInstance().get(Calendar.DAY_OF_MONTH).toLong()
-                Log.e("lecArr",lectureArr.size.toString())
-                if(lectureArr.size == 0){
-                    lectureArr.add(hashMapOf("Year" to year, "Month" to month,
-                        "Day" to day, "Check_Count" to 1L))
-                    Log.e("11","11")
+                if(lectureArr == null){
+                    newDb.update("lecture.Year" , year)
+                    newDb.update("lecture.Month" , month)
+                    newDb.update("lecture.Day" , day)
+                    newDb.update("lecture.Check_Count" , 1L)
                 }
-                else if(studentId == hostId){
-                    var lastLecture = lectureArr[lectureArr.size - 1]
-                    if(lastLecture["Day"]?.toLong() == day && lastLecture["Month"]?.toLong() == month && lastLecture["Year"]?.toLong() == year){
-                        lectureArr[lectureArr.size - 1]["Check_Count"] = lectureArr[lectureArr.size - 1]["Check_Count"]!! + 1
-                        Log.e("check_count","did it")
+                else if(studentId == hostId) {
+                    if(lectureArr["Day"]?.toLong() == day && lectureArr["Month"]?.toLong() == month && lectureArr["Year"]?.toLong() == year){
+                        newDb.update("lecture.Check_Count" , FieldValue.increment(1))
                     } else {
-                        lectureArr.add(hashMapOf("Year" to year, "Month" to month,
-                            "Day" to day, "Check_Count" to 1L))
-                        Log.e("11","12")
+                        newDb.update("lecture.Year" , year)
+                        newDb.update("lecture.Month" , month)
+                        newDb.update("lecture.Day" , day)
+                        newDb.update("lecture.Check_Count" , 1L)
                     }
                 }
-                Log.e("asad", studentId + " " + hostId)
-                newDb.update("lecture", lectureArr)
             }
         } ?: Log.e(TAG, "Failed to create advertiser")
 
@@ -162,7 +159,7 @@ class BlueToothAttendanceCheckerService : Service() {
 
     //FOR STUDENT
     fun loopChecking(){
-        Timer("schedule", true).schedule(60000) {
+        Timer("schedule", true).schedule(15000) {
             FirebaseFirestore.getInstance().collection("courses").document(courseIdHost!!).
                 get().addOnSuccessListener {
                 val checkingAttendance = it.get("isCheckingAttendance")
@@ -194,41 +191,37 @@ class BlueToothAttendanceCheckerService : Service() {
         if(parcelUUIDs != null){
             val serviceList = arrayListOf<UUID>()
             Log.e("asdasd","callback " + parcelUUIDs.size.toString())
-            for(i in 0 until parcelUUIDs.size){
+            for(i in 0 until parcelUUIDs.size) {
                 val serviceUUID = parcelUUIDs[i].uuid
                 Log.e("UUID", serviceUUID.toString())
                 db.collection("courses").document(courseId!!).get().addOnSuccessListener { result ->
-                    if(result.get("UUID") == serviceUUID.toString()){
 
+                    Log.e("found",serviceUUID.toString())
+                    if(result.get("UUID") == serviceUUID.toString()){
                         codeHost = serviceUUID.toString()
                         if(advertising)
                             stopAdvertising()
                         startAdvertising(codeHost)
-                        val lectureArr = result.get("lecture") as ArrayList<HashMap<String, Long> >
+                        val lectureArr = result.get("lecture") as HashMap<String, Long>
 
-                        val newDb = FirebaseFirestore.getInstance().collection("courses").document(courseId!!)
-
-                        if(lectureArr[lectureArr.size - 1][studentId!!] == null){
-                            lectureArr[lectureArr.size - 1][studentId!!] = lectureArr[lectureArr.size - 1]["Check_Count"]!!
-                            newDb.update("lecture", lectureArr)
-                            FirebaseFirestore.getInstance().collection("users").document(studentId!!).get().addOnSuccessListener { result ->
-                                val cnt = 1
-                                FirebaseFirestore.getInstance().collection("users").document(studentId!!).update(
-                                    mapOf("currentClassCount.$courseId" to cnt))
-                            }
-                            sendMessage()
+                        db.collection("courses").document(courseId).update("lecture.${studentId!!}" , lectureArr["Check_Count"]).addOnSuccessListener {
+                            Log.e("update", "success")
+//                            Log.e("Start sleeping", "123")
+//                            Thread.sleep(5000)
+//                            Log.e("Done sleeping", "123")
+                        }.addOnFailureListener {
+                            Log.e("update", it.message)
                         }
-                        else if(lectureArr[lectureArr.size - 1][studentId!!] != lectureArr[lectureArr.size - 1]["Check_Count"]!!){
-                            lectureArr[lectureArr.size - 1][studentId!!] = lectureArr[lectureArr.size - 1]["Check_Count"]!!
-                            newDb.update("lecture", lectureArr)
 
-                            FirebaseFirestore.getInstance().collection("users").document(studentId!!).get().addOnSuccessListener { result ->
-                                val map = result.get("currentClassCount") as HashMap<String, Long>
-                                FirebaseFirestore.getInstance().collection("users").document(studentId!!).
+                        if(lectureArr[studentId!!] == null) {
+                            FirebaseFirestore.getInstance().collection("users").document(studentId!!).update("currentClassCount.$courseId", 1)
+                        }
+
+                        else if(lectureArr[studentId!!] != lectureArr["Check_Count"]!!){
+                            FirebaseFirestore.getInstance().collection("users").document(studentId!!).
                                     update("currentClassCount.$courseId", FieldValue.increment(1))
-                            }
-                            sendMessage()
                         }
+                        sendMessage()
 
                         if(scanning)
                             bluetoothScanner.stopScan(bleScanner)
