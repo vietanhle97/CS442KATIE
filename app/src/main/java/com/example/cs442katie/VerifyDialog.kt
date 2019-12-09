@@ -185,11 +185,15 @@ class VerifyDialog : DialogFragment() {
     private fun detectFace(faceImg: Bitmap): Boolean {
         val capturedFace = FaceRecognizer.getFaceBitmap(faceImg)
         if(capturedFace == null) {
-            Toast.makeText(context!!, "No face found.", Toast.LENGTH_SHORT).show()
+            AlertDialog.Builder(activity).setMessage("No face detected, please try again").show()
             return false
         }
         val userFaceFeat = MainActivity.user.faceFeat.toFloatArray()
-        return FaceRecognizer.compareFace(capturedFace, userFaceFeat)
+        if(!FaceRecognizer.compareFace(capturedFace, userFaceFeat)) {
+            AlertDialog.Builder(activity).setMessage("Face not matched, please try again").show()
+            return false
+        }
+        return true
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -198,53 +202,41 @@ class VerifyDialog : DialogFragment() {
             REQUEST_IMAGE_CAPTURE -> {
                 Log.e("request Code", requestCode.toString())
                 Log.e("result Code", resultCode.toString())
-                Log.e("DATA", (data == null).toString())
-                Log.e("NULL", (data?.extras?.get("data")).toString())
-                Log.e("NULL", (data?.data == null).toString())
-                if(true || data != null || data?.extras?.get("data") != null) {
-                    if (currentPhotoPath != null) {
-                        var capturedImg = BitmapFactory.decodeFile(currentPhotoPath)
-                        if(capturedImg == null) return
-                        capturedImg =
-                            FaceRecognizer.modifyOrientation(capturedImg, currentPhotoPath)
-                        Log.e("img", "okayyy")
-                        if (!detectFace(capturedImg)) {
-                            Toast.makeText(context!!, "Face not matched, please try again", Toast.LENGTH_SHORT).show()
-                            return
-                        }
-                        cameraProgress.visibility = View.VISIBLE
-                        contentView.findViewById<RelativeLayout>(R.id.verify_board).visibility =
-                            View.INVISIBLE
-                        Log.e("Face Recognition", "Matched")
-                        val newIntent = Intent(
-                            activity!!.applicationContext,
-                            BlueToothAttendanceCheckerService::class.java
-                        )
-                        newIntent.putExtra("courseId", courseId)
-                        newIntent.putExtra("studentId", auth.currentUser!!.uid)
+                if(resultCode == Activity.RESULT_CANCELED) return
+                cameraProgress.visibility = View.VISIBLE
+                contentView.findViewById<RelativeLayout>(R.id.verify_board).visibility = View.INVISIBLE
+                contentView.findViewById<TextView>(R.id.attendance_checked_notification).visibility = View.INVISIBLE
+                var capturedImg: Bitmap? = BitmapFactory.decodeFile(currentPhotoPath) ?: return
+                capturedImg = FaceRecognizer.modifyOrientation(capturedImg!!, currentPhotoPath)
+                if (!detectFace(capturedImg)) return
+                Log.e("Face Recognition", "Matched")
+                val newIntent = Intent(
+                    activity!!.applicationContext,
+                    BlueToothAttendanceCheckerService::class.java
+                )
+                newIntent.putExtra("courseId", courseId)
+                newIntent.putExtra("studentId", auth.currentUser!!.uid)
 
-                        val serviceConnection = object : ServiceConnection {
-                            override fun onServiceDisconnected(name: ComponentName?) {
-                                Log.e("Disconnected", "TRUE")
-                            }
+                val serviceConnection = object : ServiceConnection {
+                    override fun onServiceDisconnected(name: ComponentName?) {
+                        Log.e("Disconnected", "TRUE")
+                    }
 
-                            override fun onServiceConnected(
-                                name: ComponentName?,
-                                binder: IBinder?
-                            ) {
-                                val binder = binder as BlueToothAttendanceCheckerService.LocalBinder
-                                val blueToothAttendanceCheckerService = binder.getService()
-                                blueToothAttendanceCheckerService.startScan()
-                            }
-                        }
-
-                        activity!!.applicationContext.bindService(
-                            newIntent,
-                            serviceConnection,
-                            Context.BIND_AUTO_CREATE
-                        )
+                    override fun onServiceConnected(
+                        name: ComponentName?,
+                        binder: IBinder?
+                    ) {
+                        val binder = binder as BlueToothAttendanceCheckerService.LocalBinder
+                        val blueToothAttendanceCheckerService = binder.getService()
+                        blueToothAttendanceCheckerService.startScan()
                     }
                 }
+
+                activity!!.applicationContext.bindService(
+                    newIntent,
+                    serviceConnection,
+                    Context.BIND_AUTO_CREATE
+                )
             }
         }
     }

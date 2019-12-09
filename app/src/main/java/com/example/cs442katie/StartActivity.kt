@@ -3,6 +3,7 @@ package com.example.cs442katie
 import android.animation.AnimatorInflater
 import android.animation.AnimatorSet
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -62,7 +63,12 @@ class StartActivity : AppCompatActivity() {
         val email = findViewById<EditText>(R.id.email)
         val password = findViewById<EditText>(R.id.password)
 
-        FaceRecognizer.setup(applicationContext, assets, modelFileName)
+        if(!FaceRecognizer.setup(this, assets, modelFileName)) {
+            AlertDialog.Builder(this).setMessage("Could not set up the face detector!").setOnDismissListener {
+                finish()
+            }.show()
+            return
+        }
 
         if(FirebaseAuth.getInstance().currentUser != null) {
             signin_holder.visibility = View.GONE
@@ -87,7 +93,7 @@ class StartActivity : AppCompatActivity() {
                 } else {
                     signin.setBackgroundResource(R.drawable.button_disable)
                     signin.setOnClickListener(View.OnClickListener {
-                        Toast.makeText(this@StartActivity, "Your email and password can't be empty.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@StartActivity, "Your email and password can't be empty.", Toast.LENGTH_LONG).show()
                     })
                 }
             }
@@ -162,7 +168,7 @@ class StartActivity : AppCompatActivity() {
         )
     }
 
-    private fun checkGrantResults(grantResults: IntArray) : Boolean{
+    private fun checkGrantResults(grantResults: IntArray) : Boolean {
         for(i in grantResults){
             if(i != PackageManager.PERMISSION_GRANTED){
                 return false
