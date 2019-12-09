@@ -138,6 +138,7 @@ class RegisterPhotoActivity : AppCompatActivity() {
                         "studentId" to studentId,
                         "email" to email,
                         "course" to hashMapOf("CS442" to 0, "CS489" to 0, "CS459" to 0),
+                        "currentClassCount" to hashMapOf("CS442" to 0, "CS489" to 0, "CS459" to 0),
                         "faceUri" to faceRef.path,
                         "faceFeat" to faceFeat.toCollection(ArrayList())
                     )

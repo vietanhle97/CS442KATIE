@@ -80,8 +80,11 @@ class CourseMainAdapter(
                     if(lectureList.isNotEmpty()){
                         val currentLecture = lectureList[lectureList.size - 1]
                         for (i in studentList){
-                            if(i in currentLecture.keys && currentLecture[i] as Long > currentLecture["Check_Count"] as Long - 5){
-                                FirebaseFirestore.getInstance().collection("users").document(i).update("course.${courseMain.courseId}", FieldValue.increment(1))
+                            FirebaseFirestore.getInstance().collection("users").document(i).get().addOnSuccessListener {
+                                val currentClassCount = it.get("currentClassCount") as HashMap<String, Long>
+                                if( currentClassCount[courseMain.courseId!!]!! > currentLecture["Check_Count"]!! * 0.8) {
+                                    FirebaseFirestore.getInstance().collection("users").document(i).update("currentClassCount${courseMain.courseId}", FieldValue.increment(1))
+                                }
 
                             }
                         }

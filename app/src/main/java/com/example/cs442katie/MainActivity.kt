@@ -173,7 +173,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
     fun loopChecking(){
-        Timer("schedule", true).schedule(10000) {
+        Timer("schedule", true).schedule(30000) {
             var stop = false;
             FirebaseFirestore.getInstance().collection("courses").document(currentCourse.courseId).
                 get().addOnSuccessListener {
@@ -295,6 +295,7 @@ class MainActivity : AppCompatActivity() {
                 sendNotification(requestQueue, notification)
                 db.collection("courses").document(currentCourse.courseId).update("isCheckingAttendance", true)
                 db.collection("courses").document(currentCourse.courseId).update("isClassEnd", false)
+
 
             }
         }

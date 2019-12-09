@@ -44,7 +44,7 @@ class AttendanceListAdapter(
         val user = userList[position]
         holder.full_name.text = user.fullName
         holder.student_id.text = "ID: ${user.studentId}"
-        holder.count_attendance.text = user.course[courseId].toString()
+        holder.count_attendance.text = user.currentClassCount[courseId].toString()
         if(today_attendance[user.id] != null && today_attendance[user.id]!!){
             holder.today_attendance.setImageResource(R.drawable.ic_checked)
         } else{

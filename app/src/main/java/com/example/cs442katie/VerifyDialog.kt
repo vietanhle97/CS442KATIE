@@ -201,7 +201,7 @@ class VerifyDialog : DialogFragment() {
                 Log.e("DATA", (data == null).toString())
                 Log.e("NULL", (data?.extras?.get("data")).toString())
                 Log.e("NULL", (data?.data == null).toString())
-                if(data != null || data?.extras?.get("data") != null) {
+                if(true || data != null || data?.extras?.get("data") != null) {
                     if (currentPhotoPath != null) {
                         var capturedImg = BitmapFactory.decodeFile(currentPhotoPath)
                         if(capturedImg == null) return

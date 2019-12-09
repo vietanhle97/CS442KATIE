@@ -7,5 +7,6 @@ data class User(
     var studentId : String = "",
     var faceFeat : ArrayList<Float> = ArrayList(),
     var id : String = "",
-    var faceUri: String = ""
+    var faceUri: String = "",
+    var currentClassCount : HashMap<String, Int> = HashMap()
 )
