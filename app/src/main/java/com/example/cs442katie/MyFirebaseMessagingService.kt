@@ -47,7 +47,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             putExtra("studentId", data.get("studentId"))
             putExtra("courseId", data.get("courseId"))
             putExtra("courseName", data.get("title"))
-            putExtra("isAdmin", data.get("isAdmin"))
+            putExtra("adminId", data.get("adminId"))
         }
 
         var pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT)

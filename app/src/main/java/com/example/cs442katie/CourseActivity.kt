@@ -48,21 +48,31 @@ class CourseActivity : AppCompatActivity() {
     lateinit var auth: FirebaseAuth
     lateinit var courseId : String
     lateinit var studentId : String
+
+    companion object {
+        var user: User = User()
+    }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_course)
         val toolbar: Toolbar = findViewById(R.id.courseToolbar)
-
         toolbar.title = intent.extras?.getString("courseName")
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        auth = FirebaseAuth.getInstance()
         courseId = intent.extras?.getString("courseId") as String
         studentId = intent.extras?.getString("studentId") as String
-        val isAdmin = intent.extras?.getBoolean("isAdmin")
+        val adminId = intent.extras?.getString("adminId")
+        val isAdmin = (adminId == auth.currentUser!!.uid)
         val button_verify = findViewById<Button>(R.id.button_verify)
-
-
         db = FirebaseFirestore.getInstance()
         auth = FirebaseAuth.getInstance()
-        setSupportActionBar(toolbar)
+
+        db.collection("users").document(auth.uid!!).get().addOnSuccessListener { result ->
+            user = result.toObject(User::class.java)!!}
+
         if(isAdmin == false){
             if(courseId != null){
                 db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
@@ -100,7 +110,7 @@ class CourseActivity : AppCompatActivity() {
                 }.map {
                     it.toObject(User::class.java)
                 }
-                val attendanceListAdapter = AttendanceListAdapter(this@CourseActivity, userList, courseId, todayAttendance, isAdmin!!)
+                val attendanceListAdapter = AttendanceListAdapter(this@CourseActivity, userList, courseId, todayAttendance, isAdmin)
                 val recycler = findViewById<RecyclerView>(R.id.student_list)
                 recycler.setHasFixedSize(true)
 

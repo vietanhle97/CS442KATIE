@@ -188,7 +188,7 @@ class VerifyDialog : DialogFragment() {
             Toast.makeText(context!!, "No face found.", Toast.LENGTH_SHORT).show()
             return false
         }
-        val userFaceFeat = MainActivity.user.faceFeat.toFloatArray()
+        val userFaceFeat = CourseActivity.user.faceFeat.toFloatArray()
         return FaceRecognizer.compareFace(capturedFace, userFaceFeat)
     }
 

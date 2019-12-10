@@ -221,7 +221,7 @@ class MainActivity : AppCompatActivity() {
         intent.putExtra("studentId", auth.currentUser!!.uid)
         intent.putExtra("courseId", course.courseId)
         intent.putExtra("courseName", course.courseName)
-        intent.putExtra("isAdmin", course.admin == auth.currentUser!!.uid)
+        intent.putExtra("adminId", course.admin)
         startActivity(intent)
     }
 
@@ -286,7 +286,7 @@ class MainActivity : AppCompatActivity() {
                     notificationData.put("message", "Class is checking attendance")
                     notificationData.put("studentId", user.studentId)
                     notificationData.put("courseId", currentCourse.courseId)
-                    notificationData.put("isAdmin", currentCourse.admin == auth.currentUser!!.uid)
+                    notificationData.put("adminId", currentCourse.admin)
                     notification.put("data", notificationData)
                     Log.e("notification", notification.toString(2))
                 } catch (e: JSONException) {

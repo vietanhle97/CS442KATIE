@@ -8,7 +8,8 @@
         android:id="@+id/verify_board"
         android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:visibility="invisible">
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -36,7 +37,6 @@
                 android:elevation="5dp"
                 android:id="@+id/camera" />
         </androidx.cardview.widget.CardView>
-
     </RelativeLayout>
     <ProgressBar
         android:id="@+id/camera_progress"
@@ -48,7 +48,6 @@
         android:visibility="gone"
         />
     <TextView
-        android:visibility="invisible"
         android:layout_width="match_parent"
         android:id="@+id/attendance_checked_notification"
         android:layout_height="wrap_content"

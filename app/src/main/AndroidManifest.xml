@@ -45,6 +45,7 @@
 
         <activity
             android:name=".CourseActivity"
+            android:parentActivityName=".MainActivity"
             android:colorMode="wideColorGamut" />
         <activity
             android:name=".MainActivity"

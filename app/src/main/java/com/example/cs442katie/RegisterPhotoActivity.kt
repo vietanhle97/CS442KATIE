@@ -146,6 +146,7 @@ class RegisterPhotoActivity : AppCompatActivity() {
                         // We auto enroll every students to the CS442 course.
                         db.collection("courses").document("CS442").update("student", FieldValue.arrayUnion(id))
                         db.collection("courses").document("CS489").update("student", FieldValue.arrayUnion(id))
+                        db.collection("courses").document("CS459").update("student", FieldValue.arrayUnion(id))
                         val intent = Intent(this, MainActivity :: class.java)
                         startActivity(intent)
                     }.addOnFailureListener {
