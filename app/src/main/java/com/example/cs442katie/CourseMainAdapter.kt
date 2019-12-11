@@ -75,13 +75,16 @@ class CourseMainAdapter(
 
             classEndButton.setOnClickListener(View.OnClickListener {
                 FirebaseFirestore.getInstance().collection("courses").document(courseMain.courseId).get().addOnSuccessListener {
-                    val lectureList = it.get("lecture") as ArrayList<HashMap<String, Long>>
+                    val lectureList = it.get("lecture") as HashMap<String, Long>
                     val studentList = it.get("student") as ArrayList<String>
                     if(lectureList.isNotEmpty()){
-                        val currentLecture = lectureList[lectureList.size - 1]
+                        val currentLecture = lectureList
                         for (i in studentList){
-                            if(i in currentLecture.keys && currentLecture[i] as Long > currentLecture["Check_Count"] as Long - 5){
-                                FirebaseFirestore.getInstance().collection("users").document(i).update("course.${courseMain.courseId}", FieldValue.increment(1))
+                            FirebaseFirestore.getInstance().collection("users").document(i).get().addOnSuccessListener {
+                                val currentClassCount = it.get("currentClassCount") as HashMap<String, Long>
+                                if( currentClassCount[courseMain.courseId!!]!! > currentLecture["Check_Count"]!! * 0.8) {
+                                    FirebaseFirestore.getInstance().collection("users").document(i).update("currentClassCount.${courseMain.courseId}", FieldValue.increment(1))
+                                }
 
                             }
                         }
@@ -95,7 +98,7 @@ class CourseMainAdapter(
                     callAttendanceButton.text = "CALL ATTENDANCE"
                     callAttendanceButton.setBackgroundColor(Color.WHITE)
                     callAttendanceButton.setTextColor(Color.BLACK)
-                    FirebaseFirestore.getInstance().collection("courses").document(courseMain.courseId).update("isCheckingAttendance", false)
+                    FirebaseFirestore.getInstance().collection("isCheckingAttendance").document(courseMain.courseId).update("isCheckingAttendance", false)
                     context.stopService(intent)
                     context.unbindService(connection)
                 }
@@ -105,7 +108,7 @@ class CourseMainAdapter(
 
                 if(callAttendanceButton.text != "STOP CALLING"){
                     attendanceListener(courseMain)
-                    FirebaseFirestore.getInstance().collection("courses").document(courseMain.courseId).addSnapshotListener(MetadataChanges.INCLUDE){
+                    FirebaseFirestore.getInstance().collection("isCheckingAttendance").document(courseMain.courseId).addSnapshotListener(MetadataChanges.INCLUDE){
                             documentSnapshot, firebaseFirestoreException ->
                         if(documentSnapshot!!.get("isCheckingAttendance") == true){
                             classEndButton.visibility = View.VISIBLE
@@ -126,7 +129,7 @@ class CourseMainAdapter(
                     callAttendanceButton.text = "CALL ATTENDANCE"
                     callAttendanceButton.setBackgroundColor(Color.WHITE)
                     callAttendanceButton.setTextColor(Color.BLACK)
-                    FirebaseFirestore.getInstance().collection("courses").document(courseMain.courseId).update("isCheckingAttendance", false)
+                    FirebaseFirestore.getInstance().collection("isCheckingAttendance").document(courseMain.courseId).update("isCheckingAttendance", false)
                     context.stopService(intent)
                     context.unbindService(connection)
                 }

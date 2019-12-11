@@ -7,5 +7,5 @@ data class Course(
     var admin: String = "v",
     var instructor: String = "v",
     var student: ArrayList<String> = ArrayList(),
-    var lecture: ArrayList<HashMap<String, Long> > = ArrayList()
+    var lecture: HashMap<String, Long> = HashMap()
 )

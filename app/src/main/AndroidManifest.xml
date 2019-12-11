@@ -22,7 +22,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme.NoActionBar">
-        <activity android:name=".RegisterPhotoActivity"></activity>
+        <activity android:name=".RegisterPhotoActivity" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -45,8 +45,8 @@
 
         <activity
             android:name=".CourseActivity"
-            android:parentActivityName=".MainActivity"
-            android:colorMode="wideColorGamut" />
+            android:colorMode="wideColorGamut"
+            android:parentActivityName=".MainActivity" />
         <activity
             android:name=".MainActivity"
             android:colorMode="wideColorGamut"

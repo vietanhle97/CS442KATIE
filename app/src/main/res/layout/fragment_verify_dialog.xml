@@ -8,8 +8,7 @@
         android:id="@+id/verify_board"
         android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:visibility="invisible">
+        android:layout_height="wrap_content">
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -47,14 +46,29 @@
         android:src="@drawable/progress_bar_drawable"
         android:visibility="gone"
         />
-    <TextView
-        android:layout_width="match_parent"
-        android:id="@+id/attendance_checked_notification"
+    <RelativeLayout
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
-        android:textSize="18dp"
-        android:text="Your attendance is checked\n stay in class to maintain attendance"
-        android:gravity="center"
-        />
+        android:id="@+id/verified_board"
+        android:visibility="invisible">
 
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_checked"
+            android:layout_centerHorizontal="true"
+            android:id="@+id/verified"
+            android:layout_marginTop="30dp"
+            />
+        <TextView
+            android:layout_width="match_parent"
+            android:id="@+id/attendance_checked_notification"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/verified"
+            android:layout_marginTop="10dp"
+            android:textSize="18dp"
+            android:text="Your attendance is checked\n stay in class to maintain attendance"
+            android:gravity="center"
+            />
+    </RelativeLayout>
 </RelativeLayout>

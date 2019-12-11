@@ -1,16 +1,22 @@
 package com.example.cs442katie
 
+import android.app.Activity
 import android.app.AlertDialog
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
+import android.os.AsyncTask
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
+import android.os.IBinder
 import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
@@ -92,7 +98,7 @@ class RegisterPhotoActivity : AppCompatActivity() {
     @Throws(IOException::class)
     private fun createImageFile(): File {
         // Create an image file name
-        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
+        val timeStamp: String =SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
         val storageDir: File = getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
         return File.createTempFile(
             "JPEG_${timeStamp}_", /* prefix */
@@ -105,18 +111,12 @@ class RegisterPhotoActivity : AppCompatActivity() {
     }
 
     private fun detectFace(faceImg: Bitmap) {
-        findViewById<RelativeLayout>(R.id.register_template).visibility = View.INVISIBLE
-        findViewById<ProgressBar>(R.id.circular_progress).visibility = View.VISIBLE
-
         val capturedFace = FaceRecognizer.getFaceBitmap(faceImg)
         if(capturedFace == null) {
             Toast.makeText(this, "No face found.", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
-
-        val imageView = findViewById<ImageView>(R.id.please_take_picture)
-        imageView.setImageBitmap(capturedFace)
 
         val baos = ByteArrayOutputStream()
         capturedFace.compress(Bitmap.CompressFormat.JPEG, 100, baos)
@@ -125,7 +125,6 @@ class RegisterPhotoActivity : AppCompatActivity() {
         val faceRef = mStorageRef.child("$studentId.jpg")
         var uploadTask = faceRef.putBytes(data)
         uploadTask.addOnSuccessListener {
-            Log.e("success", "success")
             var faceFeat = FaceRecognizer.getFaceFeat(capturedFace)
             auth = FirebaseAuth.getInstance()
             auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener {
@@ -138,11 +137,11 @@ class RegisterPhotoActivity : AppCompatActivity() {
                         "studentId" to studentId,
                         "email" to email,
                         "course" to hashMapOf("CS442" to 0, "CS489" to 0, "CS459" to 0),
+                        "currentClassCount" to hashMapOf("CS442" to 0, "CS489" to 0, "CS459" to 0),
                         "faceUri" to faceRef.path,
                         "faceFeat" to faceFeat.toCollection(ArrayList())
                     )
                     db.collection("users").document(id).set(newUser).addOnSuccessListener {
-                        Log.e("success", "here")
                         // We auto enroll every students to the CS442 course.
                         db.collection("courses").document("CS442").update("student", FieldValue.arrayUnion(id))
                         db.collection("courses").document("CS489").update("student", FieldValue.arrayUnion(id))
@@ -151,17 +150,20 @@ class RegisterPhotoActivity : AppCompatActivity() {
                         startActivity(intent)
                     }.addOnFailureListener {
                         Log.e("dtb push fail", it.toString())
+                        AlertDialog.Builder(this).setMessage("Fail to connect to database, make sure you are connected to the internet").setOnDismissListener {
+                            finish()
+                        }.show()
                     }
                 } else {
-                    val message = Toast.makeText(applicationContext, "Register Failed. Please try again", Toast.LENGTH_SHORT)
-                    message.show()
-//                        circular_progress.visibility = View.GONE
-//                        signup_holder.visibility = View.VISIBLE
-//                        imm.toggleSoftInput(InputMethodManager.SHOW_FORCED,0)
+                    AlertDialog.Builder(this).setMessage("Fail to connect to database, make sure you are connected to the internet").setOnDismissListener {
+                        finish()
+                    }.show()
                 }
             }
         }.addOnFailureListener {
-            Log.e("upload fail", it.toString())
+            AlertDialog.Builder(this).setMessage("Fail to connect to database, make sure you are connected to the internet").setOnDismissListener {
+                finish()
+            }.show()
         }
     }
 
@@ -169,17 +171,32 @@ class RegisterPhotoActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         when(requestCode){
             REQUEST_IMAGE_CAPTURE -> {
-                Log.e("request Code", requestCode.toString())
-                Log.e("result Code", resultCode.toString())
-                Log.e("NULL", (data?.extras?.get("data")).toString())
-                if(currentPhotoPath != null) {
-                    var capturedImg = BitmapFactory.decodeFile(currentPhotoPath)
-                    capturedImg = FaceRecognizer.modifyOrientation(capturedImg, currentPhotoPath)
-                    Log.e("img", "okayyy")
-                    detectFace(capturedImg)
-                }
+                if(resultCode == Activity.RESULT_CANCELED) return
+                findViewById<RelativeLayout>(R.id.register_template).visibility = View.INVISIBLE
+                findViewById<ProgressBar>(R.id.circular_progress).visibility = View.VISIBLE
 
+                var capturedImg = BitmapFactory.decodeFile(currentPhotoPath)
+                if(capturedImg == null) {
+                    Toast.makeText(this, "Can't read your photo", Toast.LENGTH_LONG).show()
+                    finish()
+                    return
+                }
+                capturedImg = FaceRecognizer.modifyOrientation(capturedImg, currentPhotoPath)
+                imageProcessing().execute(capturedImg)
             }
+        }
+    }
+
+    inner class imageProcessing() : AsyncTask<Bitmap, Void, Bitmap>(){
+
+        override fun doInBackground(vararg capturedImg: Bitmap?) : Bitmap{
+            Log.e("capturedImg", (capturedImg == null).toString())
+            return FaceRecognizer.modifyOrientation(BitmapFactory.decodeFile(currentPhotoPath), currentPhotoPath)
+        }
+
+        override fun onPostExecute(result: Bitmap?) {
+            super.onPostExecute(result)
+            detectFace(result!!)
         }
     }
 }

@@ -39,17 +39,13 @@ class BlueToothAttendanceCheckerService : Service() {
     lateinit var bluetoothAdapter: BluetoothAdapter
     lateinit var bluetoothScanner: BluetoothLeScanner
     lateinit var db : FirebaseFirestore
-    var advertising = false;
-    var scanning = false;
-    var prevUUID = ""
-    private val binder = LocalBinder()
-
+    var advertising = false
+    var scanning = false
     var attendanceCode: String? = null
     var codeHost : String? = null
     var hostId : String? = null
     var courseIdHost : String? = null
     var studentId : String? = null
-    var attendanceChecked = false
 
     override fun onCreate() {
         super.onCreate()
@@ -71,7 +67,7 @@ class BlueToothAttendanceCheckerService : Service() {
     override fun onUnbind(intent: Intent): Boolean {
         if(advertising)
             stopAdvertising()
-        advertising = false;
+        advertising = false
         return true
     }
 
@@ -88,16 +84,16 @@ class BlueToothAttendanceCheckerService : Service() {
     }
 
     fun startAdvertising(attendanceCode : String?) {
-        var stop = false;
-        FirebaseFirestore.getInstance().collection("courses").document(courseIdHost!!).
+        var stop = false
+        FirebaseFirestore.getInstance().collection("isCheckingAttendance").document(courseIdHost!!).
             get().addOnSuccessListener {
             val checkingAttendance = it.get("isCheckingAttendance")
             if(checkingAttendance == false)
-                stop = true;
+                stop = true
         }
         if(stop)
-            return;
-        advertising = true;
+            return
+        advertising = true
         val bluetoothLeAdvertiser: BluetoothLeAdvertiser? =
             bluetoothAdapter.bluetoothLeAdvertiser
         val MY_UUID = UUID.randomUUID()
@@ -122,29 +118,26 @@ class BlueToothAttendanceCheckerService : Service() {
             Log.e("asda","advertising")
             val newDb = FirebaseFirestore.getInstance().collection("courses").document(courseIdHost!!)
             newDb.get().addOnSuccessListener {
-                val lectureArr = it.get("lecture") as ArrayList<HashMap<String, Long> >
+                var lectureArr = it.get("lecture") as HashMap<String, Long>?
                 val year = Calendar.getInstance().get(Calendar.YEAR).toLong()
                 val month = Calendar.getInstance().get(Calendar.MONTH).toLong()
                 val day = Calendar.getInstance().get(Calendar.DAY_OF_MONTH).toLong()
-                Log.e("lecArr",lectureArr.size.toString())
-                if(lectureArr.size == 0){
-                    lectureArr.add(hashMapOf("Year" to year, "Month" to month,
-                        "Day" to day, "Check_Count" to 1L))
-                    Log.e("11","11")
+                if(lectureArr == null){
+                    newDb.update("lecture.Year" , year)
+                    newDb.update("lecture.Month" , month)
+                    newDb.update("lecture.Day" , day)
+                    newDb.update("lecture.Check_Count" , 1L)
                 }
-                else if(studentId == hostId){
-                    var lastLecture = lectureArr[lectureArr.size - 1]
-                    if(lastLecture["Day"]?.toLong() == day && lastLecture["Month"]?.toLong() == month && lastLecture["Year"]?.toLong() == year){
-                        lectureArr[lectureArr.size - 1]["Check_Count"] = lectureArr[lectureArr.size - 1]["Check_Count"]!! + 1
-                        Log.e("check_count","did it")
+                else if(studentId == hostId) {
+                    if(lectureArr["Day"]?.toLong() == day && lectureArr["Month"]?.toLong() == month && lectureArr["Year"]?.toLong() == year){
+                        newDb.update("lecture.Check_Count" , FieldValue.increment(1))
                     } else {
-                        lectureArr.add(hashMapOf("Year" to year, "Month" to month,
-                            "Day" to day, "Check_Count" to 1L))
-                        Log.e("11","12")
+                        newDb.update("lecture.Year" , year)
+                        newDb.update("lecture.Month" , month)
+                        newDb.update("lecture.Day" , day)
+                        newDb.update("lecture.Check_Count" , 1L)
                     }
                 }
-                Log.e("asad", studentId + " " + hostId)
-                newDb.update("lecture", lectureArr)
             }
         } ?: Log.e(TAG, "Failed to create advertiser")
 
@@ -152,7 +145,7 @@ class BlueToothAttendanceCheckerService : Service() {
     }
 
     fun stopAdvertising() {
-        advertising = false;
+        advertising = false
         val bluetoothLeAdvertiser: BluetoothLeAdvertiser? =
             bluetoothAdapter.bluetoothLeAdvertiser
         bluetoothLeAdvertiser?.let {
@@ -162,8 +155,8 @@ class BlueToothAttendanceCheckerService : Service() {
 
     //FOR STUDENT
     fun loopChecking(){
-        Timer("schedule", true).schedule(10000) {
-            FirebaseFirestore.getInstance().collection("courses").document(courseIdHost!!).
+        Timer("schedule", true).schedule(15000) {
+            FirebaseFirestore.getInstance().collection("isCheckingAttendance").document(courseIdHost!!).
                 get().addOnSuccessListener {
                 val checkingAttendance = it.get("isCheckingAttendance")
                 if(checkingAttendance == false)
@@ -178,6 +171,7 @@ class BlueToothAttendanceCheckerService : Service() {
 
     fun startScan(){
         bluetoothScanner.startScan(bleScanner)
+        scanning = true
         loopChecking()
     }
 
@@ -189,69 +183,45 @@ class BlueToothAttendanceCheckerService : Service() {
     }
 
     fun getServiceUUIDsList(scanResult: ScanResult?, courseId: String?) {
-        db.collection("courses").document(courseId!!).get().addOnSuccessListener { result ->
-            val parcelUUIDs = scanResult?.scanRecord?.serviceUuids
-            val lectureArr = result.get("lecture") as ArrayList<HashMap<String, Long>>
-            val isCheckingAttendance = result.get("isCheckingAttendance") as Boolean
-            val currentLecture = lectureArr[lectureArr.size - 1]
-            if(parcelUUIDs != null){
-                val hostUUID = result.get("UUID").toString()
-                for (i in parcelUUIDs) {
-                    Log.e("UUID", i.uuid.toString())
-                    if (result.get("UUID") == i.uuid.toString() && isCheckingAttendance) {
-                        if (advertising) stopAdvertising()
+        val parcelUUIDs = scanResult?.scanRecord?.serviceUuids
+        if(parcelUUIDs != null){
+            val serviceList = arrayListOf<UUID>()
+            Log.e("asdasd","callback " + parcelUUIDs.size.toString())
+            for(i in 0 until parcelUUIDs.size) {
+                val serviceUUID = parcelUUIDs[i].uuid
+                Log.e("UUID", serviceUUID.toString())
+                db.collection("courses").document(courseId!!).get().addOnSuccessListener { result ->
 
-                        if(studentId!! in currentLecture.keys){
-                            attendanceChecked  = true
+                    Log.e("found",serviceUUID.toString())
+                    if(result.get("UUID") == serviceUUID.toString()){
+                        codeHost = serviceUUID.toString()
+                        if(advertising)
+                            stopAdvertising()
+                        startAdvertising(codeHost)
+                        val lectureArr = result.get("lecture") as HashMap<String, Long>
+
+                        db.collection("courses").document(courseId).update("lecture.${studentId!!}" , lectureArr["Check_Count"]).addOnSuccessListener {
+                            Log.e("update", "success")
+//                            Log.e("Start sleeping", "123")
+//                            Thread.sleep(5000)
+//                            Log.e("Done sleeping", "123")
+                        }.addOnFailureListener {
+                            Log.e("update", it.message)
                         }
-                        val newDb = FirebaseFirestore.getInstance().collection("courses")
-                            .document(courseId!!)
 
-                        if(!attendanceChecked){
-                            lectureArr[lectureArr.size-1][studentId!!] = 1
-                            newDb.update("lecture", lectureArr)
-                        } else{
-                            lectureArr[lectureArr.size - 1][studentId!!] = lectureArr[lectureArr.size - 1][studentId!!] as Long  + 1
-                            newDb.update("lecture", lectureArr)
+                        if(lectureArr[studentId!!] == null) {
+                            FirebaseFirestore.getInstance().collection("users").document(studentId!!).update("currentClassCount.$courseId", 1)
+                        }
+
+                        else if(lectureArr[studentId!!] != lectureArr["Check_Count"]!!){
+                            FirebaseFirestore.getInstance().collection("users").document(studentId!!).
+                                    update("currentClassCount.$courseId", FieldValue.increment(1))
                         }
                         sendMessage()
-                        startAdvertising(hostUUID)
-                        attendanceChecked = false
-                        break
-    //                        if (!attendanceChecked) {
-    //                            val newDb = FirebaseFirestore.getInstance().collection("courses")
-    //                                .document(courseId!!)
-    //                            if (lectureArr[lectureArr.size - 1][studentId!!] == null) {
-    //                                lectureArr[lectureArr.size - 1][studentId!!] =
-    //                                    lectureArr[lectureArr.size - 1]["Check_Count"]!!
-    //                                newDb.update("lecture", lectureArr)
-    //
-    //                                FirebaseFirestore.getInstance().collection("users")
-    //                                    .document(studentId!!).get()
-    //                                    .addOnSuccessListener { result ->
-    //                                        Log.e("studentId", studentId)
-    //                                        val map = result.get("course") as HashMap<String, Long>
-    //                                        val cnt = 1
-    //                                        FirebaseFirestore.getInstance().collection("users")
-    //                                            .document(studentId!!).update(
-    //                                                mapOf("course.$courseId" to cnt)
-    //                                            )
-    //                                    }
-    //
-    //                            } else if (lectureArr[lectureArr.size - 1][studentId!!] != lectureArr[lectureArr.size - 1]["Check_Count"]!!) {
-    //                                lectureArr[lectureArr.size - 1][studentId!!] =
-    //                                    lectureArr[lectureArr.size - 1]["Check_Count"]!!
-    //                                newDb.update("lecture", lectureArr)
-    //
-    //                            }
-    //                        }
-    //                        attendanceChecked = false
-    //                        if (scanning)
-    //                            bluetoothScanner.stopScan(bleScanner)
-    //                        scanning = false;
-                    } else {
-                        bluetoothScanner.stopScan(bleScanner)
-                        stopAdvertising()
+
+                        if(scanning)
+                            bluetoothScanner.stopScan(bleScanner)
+                        scanning = false
                     }
                 }
             }

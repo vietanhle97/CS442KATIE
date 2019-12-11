@@ -1,6 +1,7 @@
 package com.example.cs442katie
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.bluetooth.*
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
@@ -36,6 +37,7 @@ import com.google.android.gms.tasks.Continuation
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.UploadTask
@@ -45,10 +47,12 @@ import java.util.HashMap
 
 class CourseActivity : AppCompatActivity() {
     lateinit var db : FirebaseFirestore
+    private val modelFileName = "vargfacenet.tflite"
     lateinit var auth: FirebaseAuth
     lateinit var courseId : String
     lateinit var studentId : String
-
+    lateinit var adminId: String
+    lateinit var registration : ListenerRegistration
     companion object {
         var user: User = User()
     }
@@ -64,7 +68,21 @@ class CourseActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         courseId = intent.extras?.getString("courseId") as String
         studentId = intent.extras?.getString("studentId") as String
-        val adminId = intent.extras?.getString("adminId")
+        adminId = intent.extras?.getString("adminId") as String
+
+        if(!FaceRecognizer.setup(this, assets, modelFileName)) {
+            AlertDialog.Builder(this).setMessage("Could not set up the face detector!").setOnDismissListener {
+                finish()
+            }.show()
+            return
+        }
+
+        Log.e("courseId", courseId)
+        Log.e("studentId", studentId)
+        Log.e("adminId", adminId)
+
+
+
         val isAdmin = (adminId == auth.currentUser!!.uid)
         val button_verify = findViewById<Button>(R.id.button_verify)
         db = FirebaseFirestore.getInstance()
@@ -75,38 +93,45 @@ class CourseActivity : AppCompatActivity() {
 
         if(isAdmin == false){
             if(courseId != null){
-                db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
-                    if(result.get("isCheckingAttendance") == true){
+                button_verify.setOnClickListener(View.OnClickListener {
+                    val verifyDialog = VerifyDialog.newInstance(courseId, studentId)
+                    verifyDialog.show(supportFragmentManager, "VerifyDialog")
+                })
+                val query = db.collection("isCheckingAttendance").document(courseId)
+                registration = query.addSnapshotListener {
+                        documentSnapshot, e ->
+                    if(documentSnapshot!!.get("isCheckingAttendance") == true) {
                         val verifyDialog = VerifyDialog.newInstance(courseId, studentId)
                         verifyDialog.show(supportFragmentManager, "VerifyDialog")
                         button_verify.visibility = View.VISIBLE
-                        button_verify.setOnClickListener(View.OnClickListener {
-                            val verifyDialog = VerifyDialog.newInstance(courseId, studentId)
-                            verifyDialog.show(supportFragmentManager, "VerifyDialog")
-                        })
+                    } else{
+                        button_verify.visibility = View.GONE
                     }
                 }
             }
         }
-        db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
-            val studentList = result.get("student") as ArrayList<String>
-            val lectureList = result.get("lecture") as ArrayList<HashMap<String, Long>>
+        db.collection("courses").document(courseId).get().addOnSuccessListener {
+                result->
+            val studentList = result?.get("student") as ArrayList<String>
             val todayAttendance = HashMap<String, Boolean>()
-            if(lectureList.isNotEmpty()){
-                val todayLecture = lectureList[lectureList.size - 1]
+            if(result.get("lecture") == null){
                 for (i in studentList){
-                    Log.e("student and keys", i + " " + (i in todayLecture.keys).toString())
-                    todayAttendance[i] = (i in todayLecture.keys)
+                    if(i != adminId){
+                        todayAttendance[i] = false
+                    }
                 }
-            } else {
+            } else{
+                val lectureList = result.get("lecture") as HashMap<String, Long>
                 for (i in studentList){
-                    todayAttendance[i] = false
+                    if(i != adminId) {
+                        todayAttendance[i] = (i in lectureList.keys)
+                    }
                 }
             }
             val userDb = FirebaseFirestore.getInstance().collection("users").get()
             userDb.addOnSuccessListener {result ->
                 val userList = result.filter {
-                    it.id in studentList
+                    it.id in studentList && it.id != adminId
                 }.map {
                     it.toObject(User::class.java)
                 }
@@ -126,4 +151,22 @@ class CourseActivity : AppCompatActivity() {
             Log.e("real time?", "REAL TIME")
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        val bluetoothAdapter = bluetoothManager.adapter
+        if(!bluetoothAdapter.isEnabled){
+            bluetoothAdapter.enable()
+        }
+
+    }
+
+
+    override fun onPause() {
+        super.onPause()
+        if(::registration.isInitialized)
+            registration.remove()
+    }
+
 }

@@ -50,6 +50,7 @@ import com.google.firebase.storage.UploadTask
 import kotlinx.android.synthetic.main.activity_sign_up.*
 import kotlinx.android.synthetic.main.course_main.*
 import kotlinx.android.synthetic.main.fragment_verify_dialog.*
+import org.w3c.dom.Text
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -58,17 +59,15 @@ import java.lang.reflect.Modifier
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 /**
  * A simple [Fragment] subclass.
  */
 class VerifyDialog : DialogFragment() {
-    private val REQUEST_ENABLE_BT = 1
     private val REQUEST_IMAGE_CAPTURE = 2
-    lateinit var bluetooth : ImageView
     lateinit var  camera : ImageView
     lateinit var cameraProgress : ProgressBar
-    private var isRegistered = false
     lateinit var currentPhotoPath: String
     lateinit var bluetoothScanner : BluetoothLeScanner
     lateinit var bluetoothManager: BluetoothManager
@@ -78,14 +77,15 @@ class VerifyDialog : DialogFragment() {
     lateinit var courseId: String
     lateinit var studentId : String
     lateinit var contentView: View
+    lateinit var capturedImg : Bitmap
 
     private val mMessageReceiver = object: BroadcastReceiver() {
         override fun onReceive(context : Context , intent : Intent) {
             contentView.findViewById<RelativeLayout>(R.id.verify_board).visibility = View.INVISIBLE
             contentView.findViewById<ProgressBar>(R.id.camera_progress).visibility = View.GONE
-            contentView.findViewById<TextView>(R.id.attendance_checked_notification).visibility = View.VISIBLE
+            contentView.findViewById<RelativeLayout>(R.id.verified_board).visibility = View.VISIBLE
         }
-    };
+    }
 
     companion object {
         fun newInstance(courseId : String, studentId : String) : VerifyDialog {
@@ -100,10 +100,12 @@ class VerifyDialog : DialogFragment() {
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+
         val builder = AlertDialog.Builder(activity)
         contentView = activity?.layoutInflater?.inflate(R.layout.fragment_verify_dialog, null) as View
         builder.setView(contentView)
         val dialog = builder.create()
+        dialog.setCanceledOnTouchOutside(false)
         bluetoothManager = activity!!.applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothAdapter = bluetoothManager.adapter
         bluetoothScanner = bluetoothAdapter.bluetoothLeScanner
@@ -113,29 +115,36 @@ class VerifyDialog : DialogFragment() {
             courseId = arguments?.getString("courseId").toString()
             studentId = arguments?.getString("studentId").toString()
         }
-
+//
         camera = contentView.findViewById(R.id.camera)
         cameraProgress = contentView.findViewById(R.id.camera_progress)
         onClickCameraButton()
 
+        db.collection("isCheckingAttendance").document(courseId).addSnapshotListener {
+                documentSnapshot, e ->
+            if(documentSnapshot?.get("isCheckingAttendance") == false){
+                dialog.dismiss()
+            }
+        }
+
+        db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
+            val lecture = result.get("lecture")
+            if(lecture != null){
+                if(studentId in (lecture as HashMap<String, Long>).keys){
+                    contentView.findViewById<RelativeLayout>(R.id.verify_board).visibility = View.INVISIBLE
+                    contentView.findViewById<ProgressBar>(R.id.camera_progress).visibility = View.GONE
+                    contentView.findViewById<RelativeLayout>(R.id.verified_board).visibility = View.VISIBLE
+                    BLEConnectionSetup()
+                }
+            }
+
+        }
 
         LocalBroadcastManager.getInstance(activity!!.applicationContext)
             .registerReceiver(mMessageReceiver,
-                IntentFilter("attendanceChecked"));
+                IntentFilter("attendanceChecked"))
         return dialog
     }
-//    private fun onClickBluetoothButton(){
-//        bluetooth.setOnClickListener(View.OnClickListener {
-//            if (!bluetoothAdapter.isEnabled) {
-//                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-//                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
-//            } else{
-//                bluetooth.visibility = View.GONE
-//                scanAvailableBluetooth()
-//            }
-//        })
-//
-//    }
 
     @Throws(IOException::class)
     private fun createImageFile(): File {
@@ -167,14 +176,9 @@ class VerifyDialog : DialogFragment() {
                     }
                     Log.e("file", currentPhotoPath)
                     // Continue only if the File was successfully created
-                    photoFile?.also {
-                        val photoURI: Uri = FileProvider.getUriForFile(
-                            context!!,
-                            "com.example.cs442katie.fileprovider",
-                            it
-                        )
-                        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
-                        startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE)
+                    photoFile?.also { val photoURI: Uri = FileProvider.getUriForFile(context!!, "com.example.cs442katie.fileprovider", it)
+                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
+                    startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE)
                     }
                 }
             }
@@ -185,11 +189,48 @@ class VerifyDialog : DialogFragment() {
     private fun detectFace(faceImg: Bitmap): Boolean {
         val capturedFace = FaceRecognizer.getFaceBitmap(faceImg)
         if(capturedFace == null) {
-            Toast.makeText(context!!, "No face found.", Toast.LENGTH_SHORT).show()
+            dialog?.dismiss()
+            val view = activity?.layoutInflater?.inflate(R.layout.unverified_alert, null) as View
+            view.findViewById<TextView>(R.id.attendance_checked_notification).text = "No face found, please try again"
+            AlertDialog.Builder(activity).setView(view).create().show()
             return false
         }
         val userFaceFeat = CourseActivity.user.faceFeat.toFloatArray()
-        return FaceRecognizer.compareFace(capturedFace, userFaceFeat)
+        if(!FaceRecognizer.compareFace(capturedFace, userFaceFeat)) {
+            dialog?.dismiss()
+            val view = activity?.layoutInflater?.inflate(R.layout.unverified_alert, null) as View
+            view.findViewById<TextView>(R.id.attendance_checked_notification).text = "Face not matched, please try again"
+            AlertDialog.Builder(activity).setView(view).create().show()
+//            AlertDialog.Builder(activity).setMessage("Face not matched, please try again").show()
+            return false
+        }
+        return true
+    }
+
+    private fun BLEConnectionSetup(){
+        val newIntent = Intent(activity as CourseActivity, BlueToothAttendanceCheckerService::class.java)
+        newIntent.putExtra("courseId", courseId)
+        newIntent.putExtra("studentId", auth.currentUser!!.uid)
+        val serviceConnection = object : ServiceConnection {
+            override fun onServiceDisconnected(name: ComponentName?) {
+                Log.e("Disconnected", "TRUE")
+            }
+
+            override fun onServiceConnected(
+                name: ComponentName?,
+                binder: IBinder?
+            ) {
+                val binder = binder as BlueToothAttendanceCheckerService.LocalBinder
+                val blueToothAttendanceCheckerService = binder.getService()
+                blueToothAttendanceCheckerService.startScan()
+            }
+        }
+
+        activity!!.applicationContext.bindService(
+            newIntent,
+            serviceConnection,
+            Context.BIND_AUTO_CREATE
+        )
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -198,61 +239,36 @@ class VerifyDialog : DialogFragment() {
             REQUEST_IMAGE_CAPTURE -> {
                 Log.e("request Code", requestCode.toString())
                 Log.e("result Code", resultCode.toString())
-                Log.e("DATA", (data == null).toString())
-                Log.e("NULL", (data?.extras?.get("data")).toString())
-                Log.e("NULL", (data?.data == null).toString())
-                if(data != null || data?.extras?.get("data") != null) {
-                    if (currentPhotoPath != null) {
-                        var capturedImg = BitmapFactory.decodeFile(currentPhotoPath)
-                        if(capturedImg == null) return
-                        capturedImg =
-                            FaceRecognizer.modifyOrientation(capturedImg, currentPhotoPath)
-                        Log.e("img", "okayyy")
-                        if (!detectFace(capturedImg)) {
-                            Toast.makeText(context!!, "Face not matched, please try again", Toast.LENGTH_SHORT).show()
-                            return
-                        }
-                        cameraProgress.visibility = View.VISIBLE
-                        contentView.findViewById<RelativeLayout>(R.id.verify_board).visibility =
-                            View.INVISIBLE
-                        Log.e("Face Recognition", "Matched")
-                        val newIntent = Intent(
-                            activity!!.applicationContext,
-                            BlueToothAttendanceCheckerService::class.java
-                        )
-                        newIntent.putExtra("courseId", courseId)
-                        newIntent.putExtra("studentId", auth.currentUser!!.uid)
-
-                        val serviceConnection = object : ServiceConnection {
-                            override fun onServiceDisconnected(name: ComponentName?) {
-                                Log.e("Disconnected", "TRUE")
-                            }
-
-                            override fun onServiceConnected(
-                                name: ComponentName?,
-                                binder: IBinder?
-                            ) {
-                                val binder = binder as BlueToothAttendanceCheckerService.LocalBinder
-                                val blueToothAttendanceCheckerService = binder.getService()
-                                blueToothAttendanceCheckerService.startScan()
-                            }
-                        }
-
-                        activity!!.applicationContext.bindService(
-                            newIntent,
-                            serviceConnection,
-                            Context.BIND_AUTO_CREATE
-                        )
-                    }
-                }
+                if(resultCode == Activity.RESULT_CANCELED) return
+                cameraProgress.visibility = View.VISIBLE
+                contentView.findViewById<RelativeLayout>(R.id.verify_board).visibility = View.INVISIBLE
+                contentView.findViewById<TextView>(R.id.attendance_checked_notification).visibility = View.INVISIBLE
+                capturedImg = BitmapFactory.decodeFile(currentPhotoPath) ?: return
+                imageProcessing().execute(capturedImg)
             }
         }
     }
-
 
     override fun onStop() {
         Log.e("close dialog", "true")
         Log.e("ScanDeviceActivity", "onStop()")
         super.onStop()
     }
+
+    inner class imageProcessing() : AsyncTask<Bitmap, Void, Bitmap>(){
+
+        override fun doInBackground(vararg capturedImg: Bitmap?) : Bitmap{
+            Log.e("capturedImg", (capturedImg == null).toString())
+            return FaceRecognizer.modifyOrientation(BitmapFactory.decodeFile(currentPhotoPath), currentPhotoPath)
+        }
+
+        override fun onPostExecute(result: Bitmap?) {
+            super.onPostExecute(result)
+            if (!detectFace(result!!)) return
+            Log.e("Face Recognition", "Matched")
+            BLEConnectionSetup()
+        }
+    }
+
+
 }

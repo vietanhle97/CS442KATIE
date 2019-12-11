@@ -44,7 +44,6 @@ class AttendanceListAdapter(
         val user = userList[position]
         holder.full_name.text = user.fullName
         holder.student_id.text = "ID: ${user.studentId}"
-        holder.count_attendance.text = user.course[courseId].toString()
         if(today_attendance[user.id] != null && today_attendance[user.id]!!){
             holder.today_attendance.setImageResource(R.drawable.ic_checked)
         } else{
@@ -58,8 +57,7 @@ class AttendanceListAdapter(
 
         }
         if (!isAdmin){
-            holder.today_attendance_holder.visibility = View.INVISIBLE
-            holder.count_attendance_holder.visibility = View.INVISIBLE
+            holder.today_attendance.visibility = View.INVISIBLE
             holder.student_id.visibility = View.INVISIBLE
         }
 
@@ -69,10 +67,7 @@ class AttendanceListAdapter(
         val full_name = view.findViewById<TextView>(R.id.full_name)
         val student_id = view.findViewById<TextView>(R.id.student_id)
         var today_attendance = view.findViewById<ImageView>(R.id.today_attendance)
-        val count_attendance =view.findViewById<TextView>(R.id.count_attendance)
         val user_avatar = view.findViewById<ImageView>(R.id.user_avatar)
-        val today_attendance_holder = view.findViewById<LinearLayout>(R.id.today_attendance_holder)
-        val count_attendance_holder = view.findViewById<LinearLayout>(R.id.count_attendance_holder)
 
     }
 }

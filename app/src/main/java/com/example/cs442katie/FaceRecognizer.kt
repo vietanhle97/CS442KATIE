@@ -28,7 +28,7 @@ class FaceRecognizer {
     companion object {
         const val DIM_IMG_SIZE_X = 112
         const val DIM_IMG_SIZE_Y = 112
-        private const val faceThreshold = 1.24f
+        private const val faceThreshold = 1.05f
 
         private var assetManager: AssetManager? = null
         private var appContext: Context? = null
@@ -42,8 +42,8 @@ class FaceRecognizer {
 
         private var modelName: String? = null
 
-        fun setup(context: Context, manager: AssetManager, modelFileName: String) {
-            if (modelName != null && modelFileName == modelName) return
+        fun setup(context: Context, manager: AssetManager, modelFileName: String): Boolean {
+            if (modelName != null && modelFileName == modelName) return true
             assetManager = manager
             appContext = context
             //initialize graph and labels
@@ -54,12 +54,11 @@ class FaceRecognizer {
             } catch (ex: Exception) {
                 ex.printStackTrace()
                 Log.e("tflite", "Fail to load model.")
+                return false
             }
             faceDetector = com.google.android.gms.vision.face.FaceDetector.Builder(context).setTrackingEnabled(false).build()
-            if (!faceDetector.isOperational) {
-                AlertDialog.Builder(context).setMessage("Could not set up the face detector!").show()
-                return
-            }
+            if (!faceDetector.isOperational) return false
+            return true
         }
 
         fun getFaceBitmap(frameImg: Bitmap): Bitmap? {
@@ -104,6 +103,7 @@ class FaceRecognizer {
             curFeat[0] = normalize(curFeat[0])
 
             val diff = getFaceDiff(curFeat[0], baseFaceFeat)
+            Log.e("Face difference", diff.toString())
             return diff < faceThreshold
         }
 
@@ -133,7 +133,7 @@ class FaceRecognizer {
         }
 
         // Resize bitmap to given dimensions
-        fun getResizedBitmap(bm: Bitmap, newWidth: Int = DIM_IMG_SIZE_X, newHeight: Int = DIM_IMG_SIZE_Y): Bitmap {
+        private fun getResizedBitmap(bm: Bitmap, newWidth: Int = DIM_IMG_SIZE_X, newHeight: Int = DIM_IMG_SIZE_Y): Bitmap {
             val width = bm.width
             val height = bm.height
             if(width == newWidth && height == newHeight) return bm
@@ -147,7 +147,7 @@ class FaceRecognizer {
             )
         }
 
-        // converts bitmap to byte array which is passed in the tflite graph
+        // Converts bitmap to byte array which is passed in the tflite graph
         private fun convertBitmapToByteBuffer(bitmap: Bitmap): ByteBuffer {
             val imgData = ByteBuffer.allocateDirect(4 * DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y * 3)
             imgData.order(ByteOrder.nativeOrder())
@@ -179,15 +179,10 @@ class FaceRecognizer {
 
             when (orientation) {
                 ExifInterface.ORIENTATION_ROTATE_90 -> return rotate(bitmap, 90f)
-
                 ExifInterface.ORIENTATION_ROTATE_180 -> return rotate(bitmap, 180f)
-
                 ExifInterface.ORIENTATION_ROTATE_270 -> return rotate(bitmap, 270f)
-
                 ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> return flip(bitmap, true, false)
-
                 ExifInterface.ORIENTATION_FLIP_VERTICAL -> return flip(bitmap, false, true)
-
                 else -> return bitmap
             }
         }

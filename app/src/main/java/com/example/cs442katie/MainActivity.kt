@@ -46,6 +46,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
 import io.grpc.internal.TimeProvider
 import kotlinx.android.synthetic.main.app_bar_main.*
+import kotlinx.android.synthetic.main.attendance_list.*
 import kotlinx.android.synthetic.main.course_main.*
 import org.json.JSONException
 import org.json.JSONObject
@@ -101,7 +102,6 @@ class MainActivity : AppCompatActivity() {
         if(bluetoothAdapter == null){
             finish()
         }
-
         super.onCreate(savedInstanceState)
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
@@ -173,9 +173,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
     fun loopChecking(){
-        Timer("schedule", true).schedule(10000) {
+        Timer("schedule", true).schedule(30000) {
             var stop = false;
-            FirebaseFirestore.getInstance().collection("courses").document(currentCourse.courseId).
+            FirebaseFirestore.getInstance().collection("isCheckingAttendance").document(currentCourse.courseId).
                 get().addOnSuccessListener {
                 val checkingAttendance = it.get("isCheckingAttendance")
                 if(checkingAttendance == false)
@@ -293,8 +293,9 @@ class MainActivity : AppCompatActivity() {
                     Log.e("TAG", "onCreate: " + e.message)
                 }
                 sendNotification(requestQueue, notification)
-                db.collection("courses").document(currentCourse.courseId).update("isCheckingAttendance", true)
+                db.collection("isCheckingAttendance").document(currentCourse.courseId).update("isCheckingAttendance", true)
                 db.collection("courses").document(currentCourse.courseId).update("isClassEnd", false)
+
 
             }
         }
