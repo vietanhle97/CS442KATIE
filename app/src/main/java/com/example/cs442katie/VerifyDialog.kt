@@ -119,7 +119,7 @@ class VerifyDialog : DialogFragment() {
         cameraProgress = contentView.findViewById(R.id.camera_progress)
         onClickCameraButton()
 
-        db.collection("courses").document(courseId).addSnapshotListener { result, e ->
+        db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
             val lecture = result?.get("lecture")
             if(lecture != null){
                 if(studentId in (lecture as HashMap<String, Long>).keys){
@@ -194,7 +194,7 @@ class VerifyDialog : DialogFragment() {
             CourseActivity.registration.remove()
             val view = activity?.layoutInflater?.inflate(R.layout.unverified_alert, null) as View
             view.findViewById<TextView>(R.id.attendance_checked_notification).text = "No face found, please try again"
-            val dialog = AlertDialog.Builder(activity).setView(view).create()
+            val dialog = AlertDialog.Builder(activity as CourseActivity).setView(view).create()
             dialog.setCanceledOnTouchOutside(false)
             dialog.show()
             return false
@@ -205,7 +205,7 @@ class VerifyDialog : DialogFragment() {
             CourseActivity.registration.remove()
             val view = activity?.layoutInflater?.inflate(R.layout.unverified_alert, null) as View
             view.findViewById<TextView>(R.id.attendance_checked_notification).text = "Face not matched, please try again"
-            val dialog = AlertDialog.Builder(activity).setView(view).create()
+            val dialog = AlertDialog.Builder(activity as CourseActivity).setView(view).create()
             dialog.setCanceledOnTouchOutside(false)
             dialog.show()
 //            AlertDialog.Builder(activity).setMessage("Face not matched, please try again").show()
