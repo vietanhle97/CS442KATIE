@@ -84,6 +84,7 @@ class VerifyDialog : DialogFragment() {
             contentView.findViewById<RelativeLayout>(R.id.verify_board).visibility = View.INVISIBLE
             contentView.findViewById<ProgressBar>(R.id.camera_progress).visibility = View.GONE
             contentView.findViewById<RelativeLayout>(R.id.verified_board).visibility = View.VISIBLE
+            contentView.findViewById<TextView>(R.id.verified_notification).visibility = View.VISIBLE
         }
     }
 
