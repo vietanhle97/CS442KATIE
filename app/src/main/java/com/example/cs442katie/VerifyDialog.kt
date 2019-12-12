@@ -103,9 +103,7 @@ class VerifyDialog : DialogFragment() {
 
         val builder = AlertDialog.Builder(activity)
         contentView = activity?.layoutInflater?.inflate(R.layout.fragment_verify_dialog, null) as View
-        builder.setView(contentView)
-        val dialog = builder.create()
-        dialog.setCanceledOnTouchOutside(false)
+
         bluetoothManager = activity!!.applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothAdapter = bluetoothManager.adapter
         bluetoothScanner = bluetoothAdapter.bluetoothLeScanner
@@ -120,15 +118,8 @@ class VerifyDialog : DialogFragment() {
         cameraProgress = contentView.findViewById(R.id.camera_progress)
         onClickCameraButton()
 
-        db.collection("isCheckingAttendance").document(courseId).addSnapshotListener {
-                documentSnapshot, e ->
-            if(documentSnapshot?.get("isCheckingAttendance") == false){
-                dialog.dismiss()
-            }
-        }
-
-        db.collection("courses").document(courseId).get().addOnSuccessListener { result ->
-            val lecture = result.get("lecture")
+        db.collection("courses").document(courseId).addSnapshotListener { result, e ->
+            val lecture = result?.get("lecture")
             if(lecture != null){
                 if(studentId in (lecture as HashMap<String, Long>).keys){
                     contentView.findViewById<RelativeLayout>(R.id.verify_board).visibility = View.INVISIBLE
@@ -139,10 +130,19 @@ class VerifyDialog : DialogFragment() {
             }
 
         }
-
+        builder.setView(contentView)
+        val dialog = builder.create()
+        dialog.setCanceledOnTouchOutside(false)
         LocalBroadcastManager.getInstance(activity!!.applicationContext)
             .registerReceiver(mMessageReceiver,
                 IntentFilter("attendanceChecked"))
+
+        db.collection("isCheckingAttendance").document(courseId).addSnapshotListener {
+                documentSnapshot, e ->
+            if(documentSnapshot?.get("isCheckingAttendance") == false){
+                dialog?.dismiss()
+            }
+        }
         return dialog
     }
 
@@ -190,17 +190,23 @@ class VerifyDialog : DialogFragment() {
         val capturedFace = FaceRecognizer.getFaceBitmap(faceImg)
         if(capturedFace == null) {
             dialog?.dismiss()
+            CourseActivity.registration.remove()
             val view = activity?.layoutInflater?.inflate(R.layout.unverified_alert, null) as View
             view.findViewById<TextView>(R.id.attendance_checked_notification).text = "No face found, please try again"
-            AlertDialog.Builder(activity).setView(view).create().show()
+            val dialog = AlertDialog.Builder(activity).setView(view).create()
+            dialog.setCanceledOnTouchOutside(false)
+            dialog.show()
             return false
         }
         val userFaceFeat = CourseActivity.user.faceFeat.toFloatArray()
         if(!FaceRecognizer.compareFace(capturedFace, userFaceFeat)) {
             dialog?.dismiss()
+            CourseActivity.registration.remove()
             val view = activity?.layoutInflater?.inflate(R.layout.unverified_alert, null) as View
             view.findViewById<TextView>(R.id.attendance_checked_notification).text = "Face not matched, please try again"
-            AlertDialog.Builder(activity).setView(view).create().show()
+            val dialog = AlertDialog.Builder(activity).setView(view).create()
+            dialog.setCanceledOnTouchOutside(false)
+            dialog.show()
 //            AlertDialog.Builder(activity).setMessage("Face not matched, please try again").show()
             return false
         }
@@ -242,7 +248,6 @@ class VerifyDialog : DialogFragment() {
                 if(resultCode == Activity.RESULT_CANCELED) return
                 cameraProgress.visibility = View.VISIBLE
                 contentView.findViewById<RelativeLayout>(R.id.verify_board).visibility = View.INVISIBLE
-                contentView.findViewById<TextView>(R.id.attendance_checked_notification).visibility = View.INVISIBLE
                 capturedImg = BitmapFactory.decodeFile(currentPhotoPath) ?: return
                 imageProcessing().execute(capturedImg)
             }

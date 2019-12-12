@@ -62,7 +62,7 @@
             />
         <TextView
             android:layout_width="match_parent"
-            android:id="@+id/attendance_checked_notification"
+            android:id="@+id/verified_notification"
             android:layout_height="wrap_content"
             android:layout_below="@id/verified"
             android:layout_marginTop="10dp"

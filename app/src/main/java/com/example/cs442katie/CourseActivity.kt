@@ -52,9 +52,10 @@ class CourseActivity : AppCompatActivity() {
     lateinit var courseId : String
     lateinit var studentId : String
     lateinit var adminId: String
-    lateinit var registration : ListenerRegistration
+
     companion object {
         var user: User = User()
+        var registration = ListenerRegistration {  }
     }
 
 
@@ -165,8 +166,6 @@ class CourseActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        if(::registration.isInitialized)
-            registration.remove()
+        registration.remove()
     }
-
 }
