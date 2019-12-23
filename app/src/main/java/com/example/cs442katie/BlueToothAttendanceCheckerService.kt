@@ -115,7 +115,7 @@ class BlueToothAttendanceCheckerService : Service() {
 
             it.startAdvertising(settings, data, advertiseCallback)
             db.collection("courses").document(courseIdHost!!).update("UUID", MY_UUID.toString())
-            Log.e("asda","advertising")
+//            Log.e("asda","advertising")
             val newDb = FirebaseFirestore.getInstance().collection("courses").document(courseIdHost!!)
             newDb.get().addOnSuccessListener {
                 var lectureArr = it.get("lecture") as HashMap<String, Long>?
@@ -155,7 +155,7 @@ class BlueToothAttendanceCheckerService : Service() {
 
     //FOR STUDENT
     fun loopChecking(){
-        Timer("schedule", true).schedule(15000) {
+        Timer("schedule", true).schedule(30000) {
             FirebaseFirestore.getInstance().collection("isCheckingAttendance").document(courseIdHost!!).
                 get().addOnSuccessListener {
                 val checkingAttendance = it.get("isCheckingAttendance")
@@ -200,15 +200,7 @@ class BlueToothAttendanceCheckerService : Service() {
                         startAdvertising(codeHost)
                         val lectureArr = result.get("lecture") as HashMap<String, Long>
 
-                        db.collection("courses").document(courseId).update("lecture.${studentId!!}" , lectureArr["Check_Count"]).addOnSuccessListener {
-                            Log.e("update", "success")
-//                            Log.e("Start sleeping", "123")
-//                            Thread.sleep(5000)
-//                            Log.e("Done sleeping", "123")
-                        }.addOnFailureListener {
-                            Log.e("update", it.message)
-                        }
-
+                        db.collection("courses").document(courseId).update("lecture.${studentId!!}" , lectureArr["Check_Count"])
                         if(lectureArr[studentId!!] == null) {
                             FirebaseFirestore.getInstance().collection("users").document(studentId!!).update("currentClassCount.$courseId", 1)
                         }

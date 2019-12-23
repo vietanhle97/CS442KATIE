@@ -95,17 +95,6 @@
             android:text="Call Attendance"
             android:id="@+id/call_attendance_button"
             android:paddingHorizontal="10dp"/>
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end|bottom"
-            android:background="@color/white"
-            android:layout_margin="10dp"
-            android:text="End Class"
-            android:id="@+id/class_end_button"
-            android:paddingHorizontal="10dp"
-            android:visibility="gone"
-            />
     </androidx.cardview.widget.CardView>
 
 </LinearLayout>

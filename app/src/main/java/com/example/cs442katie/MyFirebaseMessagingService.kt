@@ -32,16 +32,16 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
         createNotificationChannel()
-        Log.e(TAG, "From: " + remoteMessage.from)
+//        Log.e(TAG, "From: " + remoteMessage.from)
 
         if(remoteMessage.data != null) {
-            Log.e(TAG, "Notification Message Body: ${remoteMessage.data}")
+//            Log.e(TAG, "Notification Message Body: ${remoteMessage.data}")
             sendNotification(remoteMessage.data)
         }
     }
 
     private fun sendNotification(data: Map<String, String>) {
-        Log.e(TAG, data.get("courseId"))
+//        Log.e(TAG, data.get("courseId"))
         val intent = Intent(this, CourseActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("studentId", data.get("studentId"))
@@ -49,10 +49,13 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             putExtra("courseName", data.get("title"))
             putExtra("adminId", data.get("adminId"))
         }
-
-        var pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT)
+        val j = 1 + data.get("studentId")?.toInt() as Int
+        var pendingIntent = PendingIntent.getActivity(this, j, intent, PendingIntent.FLAG_ONE_SHOT)
         val notificationSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-
+        var i = 0
+        if(j > 0){
+            i = j
+        }
         var notificationBuilder = NotificationCompat.Builder(applicationContext, resources.getString(R.string.notification_channel_id))
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(data.get("title"))
@@ -62,7 +65,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             .setContentIntent(pendingIntent)
 
         var notificationManager: NotificationManager = this.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(0, notificationBuilder.build())
+        notificationManager.notify(i, notificationBuilder.build())
     }
 
     private fun createNotificationChannel() {

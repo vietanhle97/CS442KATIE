@@ -57,6 +57,7 @@ import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.concurrent.schedule
 import kotlin.concurrent.scheduleAtFixedRate
+import kotlin.random.Random
 
 private const val TAG = "KATIE"
 
@@ -81,14 +82,12 @@ class MainActivity : AppCompatActivity() {
             serviceIsBound = false
             Log.e("service is Disconnected", "TRUE")
         }
-
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             val binder = binder as BlueToothAttendanceCheckerService.LocalBinder
             val blueToothAttendanceCheckerService = binder.getService()
             serviceIsBound = true;
-            Log.e("service is Connected", "TRUE")
             blueToothAttendanceCheckerService.startAdvertising(MY_UUID.toString())
-            loopChecking();
+            loopChecking()
         }
     }
     companion object {
@@ -134,7 +133,7 @@ class MainActivity : AppCompatActivity() {
         serviceIntent = Intent(this@MainActivity, BlueToothAttendanceCheckerService::class.java)
         db.collection("users").document(auth.uid!!).get().addOnSuccessListener { result ->
             user = result.toObject(User::class.java)!!
-            Log.e("user info", "${user.fullName}")
+//            Log.e("user info", "${user.fullName}")
             toolbar.title = result.get("fullName").toString()
             val headerView = navView.getHeaderView(0)
             val faceRef = FirebaseStorage.getInstance().reference.child(result.get("faceUri").toString())
@@ -152,7 +151,7 @@ class MainActivity : AppCompatActivity() {
                 }.map {
                     it.toObject(Course::class.java)
                 }
-                Log.e("courses", courseList.toString())
+//                Log.e("courses", courseList.toString())
                 val courseMainAdapter =
                     CourseMainAdapter(this@MainActivity, serviceIntent, courseList, {course : Course -> onCourseMainItemClick(course)}
                         , {course : Course -> onCallAttendanceButtonClick(course)}, auth.currentUser!!.uid, serviceConnection)
@@ -173,7 +172,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
     fun loopChecking(){
-        Timer("schedule", true).schedule(30000) {
+        Timer("schedule", true).schedule(60000) {
             var stop = false;
             FirebaseFirestore.getInstance().collection("isCheckingAttendance").document(currentCourse.courseId).
                 get().addOnSuccessListener {
@@ -181,11 +180,12 @@ class MainActivity : AppCompatActivity() {
                 if(checkingAttendance == false)
                     stop = true;
             }
-            Log.e("stop", stop.toString())
-            Log.e("serviceIsBound", serviceIsBound.toString())
+//            Log.e("stop", stop.toString())
+//            Log.e("serviceIsBound", serviceIsBound.toString())
             if(!stop){
                 MY_UUID = UUID.randomUUID()
                 serviceIntent.putExtra("attendanceCode", MY_UUID.toString())
+                Log.e("UUID", MY_UUID.toString())
                 if(serviceIsBound){
                     unbindService(serviceConnection)
                     stopService(serviceIntent)
@@ -248,11 +248,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?) {
         super.onActivityResult(requestCode, resultCode, intent)
-        Log.e("data", intent?.data.toString())
-        Log.e("requestCode", requestCode.toString())
-        Log.e("haha", RESULT_OK.toString())
+//        Log.e("data", intent?.data.toString())
+//        Log.e("requestCode", requestCode.toString())
+//        Log.e("haha", RESULT_OK.toString())
         if(requestCode == REQUEST_ENABLE_BT){
-            Log.e("resultCode", resultCode.toString())
+//            Log.e("resultCode", resultCode.toString())
             if(resultCode != Activity.RESULT_OK){
                 Toast.makeText(this, "Please turn on bluetooth to check attendance", Toast.LENGTH_SHORT).show()
             } else {
@@ -265,7 +265,7 @@ class MainActivity : AppCompatActivity() {
                 startActivityForResult(discoverableIntent, REQUEST_DISCOVERABLE_BL)
             }
         } else if(requestCode == REQUEST_DISCOVERABLE_BL) {
-            Log.e("resultCode", resultCode.toString())
+//            Log.e("resultCode", resultCode.toString())
 
             if(resultCode != 60) {
                 Toast.makeText(
@@ -274,6 +274,20 @@ class MainActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
             }else{
+                FirebaseFirestore.getInstance().collection("courses").document(currentCourse.courseId).update("lecture", FieldValue.delete())
+                FirebaseFirestore.getInstance().collection("courses").document(currentCourse.courseId).get().addOnSuccessListener {
+                    val studentList = it.get("student") as ArrayList<String>
+                    Log.e("studentList", studentList.size.toString())
+                    for (i in studentList){
+                        FirebaseFirestore.getInstance().collection("users").document(i).get().addOnSuccessListener { result ->
+                            Log.e("studentID", i)
+                            Log.e("true", result.contains("currentClassCount").toString())
+                            FirebaseFirestore.getInstance().collection("users").document(i).update("course.${currentCourse.courseId}", 0)
+                            FirebaseFirestore.getInstance().collection("users").document(i).update("currentClassCount.${currentCourse.courseId}", 0)
+
+                        }
+                    }
+                }
                 this.bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
                 val requestQueue: RequestQueue by lazy {
                     Volley.newRequestQueue(this@MainActivity)
@@ -288,9 +302,9 @@ class MainActivity : AppCompatActivity() {
                     notificationData.put("courseId", currentCourse.courseId)
                     notificationData.put("adminId", currentCourse.admin)
                     notification.put("data", notificationData)
-                    Log.e("notification", notification.toString(2))
+//                    Log.e("notification", notification.toString(2))
                 } catch (e: JSONException) {
-                    Log.e("TAG", "onCreate: " + e.message)
+//                    Log.e("TAG", "onCreate: " + e.message)
                 }
                 sendNotification(requestQueue, notification)
                 db.collection("isCheckingAttendance").document(currentCourse.courseId).update("isCheckingAttendance", true)
@@ -309,7 +323,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if(item.itemId == R.id.action_settings) {
-            Log.d("sign out", "Signed out")
+//            Log.d("sign out", "Signed out")
             auth.signOut()
             val intent = Intent(this@MainActivity, StartActivity::class.java)
             startActivity(intent)
@@ -340,12 +354,12 @@ class MainActivity : AppCompatActivity() {
         }
         if(bluetoothAdapter.isEnabled){
             bluetoothAdapter.disable()
-            Log.e("disable", "disabled")
+//            Log.e("disable", "disabled")
         }
     }
 
     override fun onResume() {
-        Log.e("unregister", isBroadcastReceiverRegistered.toString())
+//        Log.e("unregister", isBroadcastReceiverRegistered.toString())
         super.onResume()
         if(!bluetoothAdapter.isEnabled){
             bluetoothAdapter.enable()

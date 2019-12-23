@@ -34,7 +34,6 @@ class CourseMainAdapter(
     val connection: ServiceConnection): RecyclerView.Adapter<CourseMainAdapter.CourseMainViewHolder> () {
 
 
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CourseMainViewHolder {
         val view = LayoutInflater.from(context).inflate(R.layout.course_main, parent, false)
         return CourseMainViewHolder(view)
@@ -62,56 +61,21 @@ class CourseMainAdapter(
         val courseId =  view.findViewById<TextView>(R.id.course_id)
         val courseInstructor = view.findViewById<TextView>(R.id.course_instructor)
         val admin = view.findViewById<TextView>(R.id.admin)
-        val classEndButton = view.findViewById<Button>(R.id.class_end_button)
 
         fun bind(context: Context, intent: Intent, connection: ServiceConnection, courseMain: Course, courseListener: (Course) -> Unit, attendanceListener: (Course) -> Unit){
             courseName.text = courseMain.courseName
             courseId.text = courseMain.courseId
             courseInstructor.text = courseMain.instructor
-//            callAttendanceButton.setOnClickListener(attendanceListener)
             course.setOnClickListener(View.OnClickListener {
                 courseListener(courseMain)
             })
-
-            classEndButton.setOnClickListener(View.OnClickListener {
-                FirebaseFirestore.getInstance().collection("courses").document(courseMain.courseId).get().addOnSuccessListener {
-                    val lectureList = it.get("lecture") as HashMap<String, Long>
-                    val studentList = it.get("student") as ArrayList<String>
-                    if(lectureList.isNotEmpty()){
-                        val currentLecture = lectureList
-                        for (i in studentList){
-                            FirebaseFirestore.getInstance().collection("users").document(i).get().addOnSuccessListener {
-                                val currentClassCount = it.get("currentClassCount") as HashMap<String, Long>
-                                if( currentClassCount[courseMain.courseId!!]!! > currentLecture["Check_Count"]!! * 0.8) {
-                                    FirebaseFirestore.getInstance().collection("users").document(i).update("currentClassCount.${courseMain.courseId}", FieldValue.increment(1))
-                                }
-
-                            }
-                        }
-                    }
-
-                }
-                FirebaseFirestore.getInstance().collection("courses").document(courseMain.courseId).update("isClassEnd", true)
-                classEndButton.visibility = View.GONE
-                if(callAttendanceButton.text == "STOP CALLING"){
-                    (context as MainActivity).serviceIsBound = false
-                    callAttendanceButton.text = "CALL ATTENDANCE"
-                    callAttendanceButton.setBackgroundColor(Color.WHITE)
-                    callAttendanceButton.setTextColor(Color.BLACK)
-                    FirebaseFirestore.getInstance().collection("isCheckingAttendance").document(courseMain.courseId).update("isCheckingAttendance", false)
-                    context.stopService(intent)
-                    context.unbindService(connection)
-                }
-            })
-
             callAttendanceButton.setOnClickListener(View.OnClickListener {
 
                 if(callAttendanceButton.text != "STOP CALLING"){
                     attendanceListener(courseMain)
                     FirebaseFirestore.getInstance().collection("isCheckingAttendance").document(courseMain.courseId).addSnapshotListener(MetadataChanges.INCLUDE){
-                            documentSnapshot, firebaseFirestoreException ->
+                            documentSnapshot, exception ->
                         if(documentSnapshot!!.get("isCheckingAttendance") == true){
-                            classEndButton.visibility = View.VISIBLE
                             callAttendanceButton.text = "STOP CALLING"
                             callAttendanceButton.setBackgroundColor(Color.BLACK)
                             callAttendanceButton.setTextColor(Color.WHITE)
@@ -120,11 +84,28 @@ class CourseMainAdapter(
                             callAttendanceButton.setBackgroundColor(Color.WHITE)
                             callAttendanceButton.setTextColor(Color.BLACK)
                         }
-                        if(documentSnapshot!!.get("isClassEnd") == true){
-                            classEndButton.visibility = View.GONE
-                        }
                     }
                 } else {
+                    FirebaseFirestore.getInstance().collection("courses").document(courseMain.courseId).get().addOnSuccessListener {
+                        val lectureList = it.get("lecture") as HashMap<String, Long>
+                        val studentList = it.get("student") as ArrayList<String>
+                        Log.e("lectureList", lectureList.size.toString())
+                        Log.e("studentList", studentList.size.toString())
+                        if(lectureList.isNotEmpty()){
+                            for (i in studentList){
+                                FirebaseFirestore.getInstance().collection("users").document(i).get().addOnSuccessListener { result ->
+                                    Log.e("studentID", i)
+                                    Log.e("true", result.contains("currentClassCount").toString())
+                                    val currentClassCount = result.get("currentClassCount") as HashMap<String, Long>
+                                    if( currentClassCount[courseMain.courseId!!]!! > lectureList["Check_Count"]!! * 0.8) {
+                                        FirebaseFirestore.getInstance().collection("users").document(i).update("course.${courseMain.courseId}", 1)
+                                        FirebaseFirestore.getInstance().collection("users").document(i).update("currentClassCount.${courseMain.courseId}", 0)
+                                    }
+
+                                }
+                            }
+                        }
+                    }
                     (context as MainActivity).serviceIsBound = false
                     callAttendanceButton.text = "CALL ATTENDANCE"
                     callAttendanceButton.setBackgroundColor(Color.WHITE)

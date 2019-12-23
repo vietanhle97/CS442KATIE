@@ -125,7 +125,11 @@ class CourseActivity : AppCompatActivity() {
                 val lectureList = result.get("lecture") as HashMap<String, Long>
                 for (i in studentList){
                     if(i != adminId) {
-                        todayAttendance[i] = (i in lectureList.keys)
+                        FirebaseFirestore.getInstance().collection("users").document(i).get().addOnSuccessListener { result ->
+                            val course = result.get("course") as HashMap<String, Long>
+                            todayAttendance[i] = course[courseId] == 1L
+                        }
+
                     }
                 }
             }
