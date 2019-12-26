@@ -25,11 +25,7 @@
 
 ## Images from the application
 
-<img width="300", src="https://imgur.com/gCkSqR7.png">
-<img width="300", src="https://imgur.com/LTtQh7N.png">
-<img width="300", src="https://imgur.com/JHQt0Lw.png">
-<img width="300", src="https://imgur.com/XUZZN77.png">
-<img widt="300", src="https://imgur.com/ewXOUTq.png">
+<img width="300", src="https://imgur.com/gCkSqR7.png"> <img width="300", src="https://imgur.com/LTtQh7N.png"> <img width="300", src="https://imgur.com/JHQt0Lw.png"> <img width="300", src="https://imgur.com/XUZZN77.png"> <img widt="300", src="https://imgur.com/ewXOUTq.png">
 
 
 
