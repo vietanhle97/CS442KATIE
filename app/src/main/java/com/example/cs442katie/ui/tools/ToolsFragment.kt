@@ -5,10 +5,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import com.example.cs442katie.R
+import com.example.cs442katie.databinding.FragmentToolsBinding
+import com.google.android.gms.common.util.DataUtils
+import kotlinx.android.synthetic.main.fragment_tools.*
 
 class ToolsFragment : Fragment() {
 
@@ -19,13 +23,8 @@ class ToolsFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        toolsViewModel =
-            ViewModelProviders.of(this).get(ToolsViewModel::class.java)
-        val root = inflater.inflate(R.layout.fragment_tools, container, false)
-        val textView: TextView = root.findViewById(R.id.text_tools)
-        toolsViewModel.text.observe(this, Observer {
-            textView.text = it
-        })
-        return root
+        val binding = DataBindingUtil.inflate<FragmentToolsBinding>(inflater, R.layout.fragment_tools, container, false)
+        binding.toolsViewModel = ViewModelProviders.of(this).get(ToolsViewModel::class.java)
+        return binding.root
     }
 }

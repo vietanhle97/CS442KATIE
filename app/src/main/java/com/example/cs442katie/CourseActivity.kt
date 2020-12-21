@@ -29,10 +29,16 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.cs442katie.VerifyDialog
+import com.example.cs442katie.databinding.ActivityCourseBinding
+import com.example.cs442katie.models.MyViewModel
 import com.google.android.gms.tasks.Continuation
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
@@ -41,12 +47,15 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.UploadTask
+import kotlinx.android.synthetic.main.course_main.*
 import kotlinx.android.synthetic.main.fragment_verify_dialog.*
 import java.io.File
 import java.util.HashMap
 
 class CourseActivity : AppCompatActivity() {
     lateinit var db : FirebaseFirestore
+    lateinit var courseBinding: ActivityCourseBinding
+    lateinit var model: MyViewModel
     private val modelFileName = "vargfacenet.tflite"
     lateinit var auth: FirebaseAuth
     lateinit var courseId : String
@@ -55,16 +64,16 @@ class CourseActivity : AppCompatActivity() {
 
     companion object {
         var user: User = User()
-        var registration = ListenerRegistration {  }
+        var registration = ListenerRegistration {}
     }
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_course)
-        val toolbar: Toolbar = findViewById(R.id.courseToolbar)
-        toolbar.title = intent.extras?.getString("courseName")
-        setSupportActionBar(toolbar)
+        courseBinding = DataBindingUtil.setContentView(this, R.layout.activity_course)
+        model = ViewModelProviders.of(this).get(MyViewModel::class.java)
+
+        courseBinding.courseToolbar.title = intent.extras?.getString("courseName")
+        setSupportActionBar(courseBinding.courseToolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         auth = FirebaseAuth.getInstance()
         courseId = intent.extras?.getString("courseId") as String
@@ -78,14 +87,8 @@ class CourseActivity : AppCompatActivity() {
             return
         }
 
-        Log.e("courseId", courseId)
-        Log.e("studentId", studentId)
-        Log.e("adminId", adminId)
-
-
-
         val isAdmin = (adminId == auth.currentUser!!.uid)
-        val button_verify = findViewById<Button>(R.id.button_verify)
+
         db = FirebaseFirestore.getInstance()
         auth = FirebaseAuth.getInstance()
 
@@ -94,7 +97,7 @@ class CourseActivity : AppCompatActivity() {
 
         if(isAdmin == false){
             if(courseId != null){
-                button_verify.setOnClickListener(View.OnClickListener {
+                courseBinding.buttonVerify.setOnClickListener(View.OnClickListener {
                     val verifyDialog = VerifyDialog.newInstance(courseId, studentId)
                     verifyDialog.show(supportFragmentManager, "VerifyDialog")
                 })
@@ -104,57 +107,46 @@ class CourseActivity : AppCompatActivity() {
                     if(documentSnapshot!!.get("isCheckingAttendance") == true) {
                         val verifyDialog = VerifyDialog.newInstance(courseId, studentId)
                         verifyDialog.show(supportFragmentManager, "VerifyDialog")
-                        button_verify.visibility = View.VISIBLE
+                        courseBinding.buttonVerify.visibility = View.VISIBLE
                     } else{
-                        button_verify.visibility = View.GONE
+                        courseBinding.buttonVerify.visibility = View.GONE
                     }
                 }
             }
         }
-        db.collection("courses").document(courseId).get().addOnSuccessListener {
-                result->
-            val studentList = result?.get("student") as ArrayList<String>
+
+        model.getCurrentCourse(courseId).observe(this, Observer { result ->
             val todayAttendance = HashMap<String, Boolean>()
-            if(result.get("lecture") == null){
-                for (i in studentList){
+            if(result.lecture.isEmpty()){
+                for (i in result.student){
                     if(i != adminId){
                         todayAttendance[i] = false
                     }
                 }
             } else{
-                val lectureList = result.get("lecture") as HashMap<String, Long>
-                for (i in studentList){
+                for (i in result.student){
                     if(i != adminId) {
-                        FirebaseFirestore.getInstance().collection("users").document(i).get().addOnSuccessListener { result ->
-                            val course = result.get("course") as HashMap<String, Long>
+                        model.getUserByID(i).observe(this, Observer {result ->
+                            val course = result.course
                             todayAttendance[i] = course[courseId] == 1L
-                        }
+                        })
 
                     }
                 }
             }
-            val userDb = FirebaseFirestore.getInstance().collection("users").get()
-            userDb.addOnSuccessListener {result ->
-                val userList = result.filter {
-                    it.id in studentList && it.id != adminId
-                }.map {
-                    it.toObject(User::class.java)
-                }
-                val attendanceListAdapter = AttendanceListAdapter(this@CourseActivity, userList, courseId, todayAttendance, isAdmin)
-                val recycler = findViewById<RecyclerView>(R.id.student_list)
-                recycler.setHasFixedSize(true)
 
-                recycler.layoutManager = LinearLayoutManager(this@CourseActivity)
-                recycler.adapter = attendanceListAdapter
-            }
+            model.getUserList().observe(this, Observer { userList ->
+                val attendanceListAdapter = AttendanceListAdapter(this@CourseActivity, userList.filter { user ->
+                    user.id != adminId
+                }, courseId, todayAttendance, isAdmin)
 
-        }
+                courseBinding.studentRecycler.setHasFixedSize(true)
 
+                courseBinding.studentRecycler.layoutManager = LinearLayoutManager(this@CourseActivity)
+                courseBinding.studentRecycler.adapter = attendanceListAdapter
+            })
+        })
 
-        db.collection("courses").document(courseId).addSnapshotListener(MetadataChanges.INCLUDE){
-            documentSnapshot, firebaseFirestoreException ->
-            Log.e("real time?", "REAL TIME")
-        }
     }
 
     override fun onResume() {

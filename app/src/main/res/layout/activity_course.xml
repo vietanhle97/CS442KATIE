@@ -1,44 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
+<layout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".CourseActivity">
-
-    <com.google.android.material.appbar.AppBarLayout
+    xmlns:tools="http://schemas.android.com/tools">
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/courseToolbarLayout"
-        android:theme="@style/AppTheme.NoActionBar.AppBarOverlay">
+        android:layout_height="match_parent"
+        tools:context=".CourseActivity">
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/courseToolbar"
+        <com.google.android.material.appbar.AppBarLayout
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="@color/colorPrimaryDark"
-            app:popupTheme="@style/AppTheme.NoActionBar.AppBarOverlay"/>
+            android:layout_height="wrap_content"
+            android:id="@+id/courseToolbarLayout"
+            android:theme="@style/AppTheme.NoActionBar.AppBarOverlay">
 
-    </com.google.android.material.appbar.AppBarLayout>
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:id="@+id/button_verify"
-        android:text="Check Attendance"
-        android:padding="10dp"
-        android:fontFamily="@font/product_sans_bold"
-        android:textColor="@color/white"
-        android:elevation="0dp"
-        android:background="@drawable/button_gradient"
-        android:layout_centerHorizontal="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginBottom="30dp"
-        android:visibility="gone"/>
-    <androidx.recyclerview.widget.RecyclerView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/student_list"
-        android:layout_below="@id/courseToolbarLayout"/>
-</RelativeLayout>
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/courseToolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="@color/colorPrimaryDark"
+                app:popupTheme="@style/AppTheme.NoActionBar.AppBarOverlay"/>
+
+        </com.google.android.material.appbar.AppBarLayout>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:id="@+id/button_verify"
+            android:text="Check Attendance"
+            android:padding="10dp"
+            android:fontFamily="@font/product_sans_bold"
+            android:textColor="@color/white"
+            android:elevation="0dp"
+            android:background="@drawable/button_gradient"
+            android:layout_centerHorizontal="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="30dp"
+            android:visibility="gone"/>
+        <androidx.recyclerview.widget.RecyclerView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/student_recycler"
+            android:layout_below="@id/courseToolbarLayout"/>
+    </RelativeLayout>
+</layout>

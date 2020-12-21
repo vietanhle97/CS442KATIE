@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
+import androidx.navigation.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.android.volley.Request
@@ -37,7 +38,7 @@ class HomeFragment : Fragment() {
         val usersDatabase = (activity as MainActivity).db.collection("users").document((activity as MainActivity).auth.uid as String)
 
         val root = inflater.inflate(R.layout.fragment_home, container, false)
-
+//        root.findNavController().navigate(R.id.action_nav_home_to_galleryFragment)
         return root
 
     }

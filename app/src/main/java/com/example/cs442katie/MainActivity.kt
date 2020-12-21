@@ -8,6 +8,9 @@ import android.content.*
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.*
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProviders
 import android.os.Bundle
 import android.os.IBinder
 import android.os.ParcelUuid
@@ -31,6 +34,7 @@ import android.widget.Toast
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.databinding.DataBindingUtil
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -39,6 +43,9 @@ import com.android.volley.Response
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
 import com.bumptech.glide.Glide
+import com.example.cs442katie.databinding.ActivityMainBinding
+import com.example.cs442katie.databinding.NavHeaderMainBinding
+import com.example.cs442katie.models.MyViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -47,7 +54,9 @@ import com.google.firebase.storage.FirebaseStorage
 import io.grpc.internal.TimeProvider
 import kotlinx.android.synthetic.main.app_bar_main.*
 import kotlinx.android.synthetic.main.attendance_list.*
+import kotlinx.android.synthetic.main.content_main.view.*
 import kotlinx.android.synthetic.main.course_main.*
+import kotlinx.android.synthetic.main.nav_header_main.view.*
 import org.json.JSONException
 import org.json.JSONObject
 import java.nio.charset.Charset
@@ -64,6 +73,7 @@ private const val TAG = "KATIE"
 
 class MainActivity : AppCompatActivity() {
     private var MY_UUID = UUID.randomUUID()
+    lateinit var mainBinding: ActivityMainBinding
     private lateinit var bluetoothManager: BluetoothManager
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private val REQUEST_ENABLE_BT = 20
@@ -105,22 +115,20 @@ class MainActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
         FirebaseMessaging.getInstance().subscribeToTopic("CS442")
-        setContentView(R.layout.activity_main)
-        val toolbar: Toolbar = findViewById(R.id.toolbar)
-        setSupportActionBar(toolbar)
+        mainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main)
+        setSupportActionBar(mainBinding.drawerLayout.findViewById(R.id.toolbar))
         mainScreenSetup()
     }
 
     private fun mainScreenSetup(){
         val activityMain = findViewById<RelativeLayout>(R.id.content_main)
         val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
-        val navView: NavigationView = findViewById(R.id.nav_view)
+        val navView: NavigationView = mainBinding.navView
         val navController = findNavController(R.id.nav_host_fragment)
         appBarConfiguration = AppBarConfiguration(
             setOf(
                 R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow,
-                R.id.nav_tools, R.id.nav_share, R.id.nav_send
-            ), drawerLayout
+                R.id.nav_tools), drawerLayout
         )
 
         setupActionBarWithNavController(navController, appBarConfiguration)
@@ -131,46 +139,35 @@ class MainActivity : AppCompatActivity() {
         activityMain.visibility = View.GONE
         toolbar.visibility = View.GONE
         serviceIntent = Intent(this@MainActivity, BlueToothAttendanceCheckerService::class.java)
-        db.collection("users").document(auth.uid!!).get().addOnSuccessListener { result ->
-            user = result.toObject(User::class.java)!!
-//            Log.e("user info", "${user.fullName}")
-            toolbar.title = result.get("fullName").toString()
-            val headerView = navView.getHeaderView(0)
-            val faceRef = FirebaseStorage.getInstance().reference.child(result.get("faceUri").toString())
-            faceRef.downloadUrl.addOnSuccessListener {
-                Glide.with(this).load(it).into(headerView.findViewById(R.id.main_user_avatar))
-            }
-            headerView.findViewById<TextView>(R.id.user_name).text = result.get("fullName").toString()
-            FirebaseMessaging.getInstance().subscribeToTopic("CS442")
-            val map = result.get("course") as HashMap<String, Long>
-            val userCourseList = map.keys
-            val coursesDatabase = FirebaseFirestore.getInstance().collection("courses").get()
-            coursesDatabase.addOnSuccessListener { documents ->
-                val courseList = documents.filter {
-                    it.id in userCourseList
-                }.map {
-                    it.toObject(Course::class.java)
+
+        val model = ViewModelProviders.of(this).get(MyViewModel::class.java)
+        model.getCurrentUser().observe(this, Observer { currentUser ->
+            toolbar.title = currentUser.fullName
+            val faceRef = FirebaseStorage.getInstance().reference.child(currentUser.faceUri)
+            navView.getHeaderView(0).apply {
+                user_name.text = currentUser.fullName
+                faceRef.downloadUrl.addOnSuccessListener {
+                    Glide.with(this).load(it).into(main_user_avatar)
                 }
-//                Log.e("courses", courseList.toString())
-                val courseMainAdapter =
-                    CourseMainAdapter(this@MainActivity, serviceIntent, courseList, {course : Course -> onCourseMainItemClick(course)}
-                        , {course : Course -> onCallAttendanceButtonClick(course)}, auth.currentUser!!.uid, serviceConnection)
-                val recycler = findViewById<RecyclerView>(R.id.course_lists)
-                recycler.setHasFixedSize(true)
-                recycler.layoutManager = LinearLayoutManager(this@MainActivity)
-                recycler.adapter = courseMainAdapter
+            }
+            FirebaseMessaging.getInstance().subscribeToTopic("CS442")
+
+            model.getCourseList(currentUser).observe(this, Observer {courseList ->
+                val courseMainAdapter = CourseMainAdapter(this@MainActivity, serviceIntent, courseList, {course : Course -> onCourseMainItemClick(course)}
+                    , {course : Course -> onCallAttendanceButtonClick(course)}, auth.currentUser!!.uid, serviceConnection)
+                val recycler = mainBinding.drawerLayout.findViewById<RecyclerView>(R.id.course_lists)
+                recycler.apply {
+                    setHasFixedSize(true)
+                    layoutManager = LinearLayoutManager(this@MainActivity)
+                    adapter = courseMainAdapter
+                }
                 activityMain.visibility = View.VISIBLE
                 toolbar.visibility = View.VISIBLE
-                appBarConfiguration = AppBarConfiguration(
-                    setOf(
-                        R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow,
-                        R.id.nav_tools, R.id.nav_share, R.id.nav_send
-                    ), drawerLayout
-                )
+            })
 
-            }
-        }
+        })
     }
+
     fun loopChecking(){
         Timer("schedule", true).schedule(60000) {
             var stop = false;
@@ -308,8 +305,6 @@ class MainActivity : AppCompatActivity() {
                 }
                 sendNotification(requestQueue, notification)
                 db.collection("isCheckingAttendance").document(currentCourse.courseId).update("isCheckingAttendance", true)
-                db.collection("courses").document(currentCourse.courseId).update("isClassEnd", false)
-
 
             }
         }
