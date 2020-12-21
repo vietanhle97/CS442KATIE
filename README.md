@@ -3,7 +3,7 @@
 ## Introduction
 - This is the final project which we did for Mobile Computing course (CS442) in KAIST.
 - KATIE is the app which is used to check attendance by using Bluetooth Low Energy (BLE) to authenticate nearby students devices and applying VarGFaceNet to verify the identities of students
-
+- Full Report: https://drive.google.com/file/d/12A0Zps_lsRnrWPLsGbyJcY_V6GiGCs_G/view?usp=sharing
 ## Bluetooth Low Energy (BLE)
 
 - Our idea is creating a mass BLE network in which there is a single central device (Prof's or TA's smartphones) and multiple peripheral devices (student phones). The central device will advertise its own BLE with a random UUID to identify it. The student's device then scan all the BLE signals around. If it found the BLE signal which has the same UUID with the one stored in database then it will automatically become a peripheral device that also advertise the BLE with the same UUID.
@@ -21,7 +21,6 @@
 
 
 ![](https://i.imgur.com/ZMO2Ue3.png)
-
 
 ## Images from the application
 
