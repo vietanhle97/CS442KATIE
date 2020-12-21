@@ -51,7 +51,6 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.storage.FirebaseStorage
-import io.grpc.internal.TimeProvider
 import kotlinx.android.synthetic.main.app_bar_main.*
 import kotlinx.android.synthetic.main.attendance_list.*
 import kotlinx.android.synthetic.main.content_main.view.*
